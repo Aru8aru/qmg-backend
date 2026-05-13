@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 
 async function sendCodeByEmail(email, code) {
-  const res = await fetch("http://localhost:3001/send-code", {
+  const res = await fetch("https://qmg-backend.onrender.com", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
