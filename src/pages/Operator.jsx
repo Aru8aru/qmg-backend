@@ -333,32 +333,26 @@ function generateNSTicket(from, to, Ks) {
   };
 }
 
-// ─── Firebase helpers ─────────────────────────────────────────────────────────
-const FB_ENABLED = FB_URL && !FB_URL.includes('YOUR_PROJECT');
-
+// ─── Firebase ─────────────────────────────────────────────────────────────────
 async function fbPush(msg) {
-  if (!FB_ENABLED) return false;
+  if(!FB_URL||FB_URL.includes('YOUR_PROJECT')) return false;
   try {
-    const res = await fetch(`${FB_URL}/qmg_chat/${msg.id}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(msg),
+    const res = await fetch(`${FB_URL}/qmg_chat/${msg.id}.json`,{
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(msg)
     });
     return res.ok;
   } catch { return false; }
 }
 
-async function fbPoll() {
-  if (!FB_ENABLED) return null;
+async function fbFetch(since=0) {
+  if(!FB_URL||FB_URL.includes('YOUR_PROJECT')) return [];
   try {
     const res = await fetch(`${FB_URL}/qmg_chat.json`);
-    if (!res.ok) return null;
+    if(!res.ok) return [];
     const data = await res.json();
-    if (!data) return [];
-    return Object.values(data)
-      .filter(Boolean)
-      .sort((a, b) => a.timestamp - b.timestamp);
-  } catch { return null; }
+    if(!data) return [];
+    return Object.values(data).filter(m=>m&&m.timestamp>since).sort((a,b)=>a.timestamp-b.timestamp);
+  } catch { return []; }
 }
 
 function loadLocalMsgs() { try { return JSON.parse(localStorage.getItem('qmg_msgs_ns')||'[]'); } catch { return []; } }
@@ -542,10 +536,9 @@ function ChatPage({ addLog, showToast }) {
   const [ttl, setTtl] = useState(SESSION_TTL);
   const [sessionKs, setSessionKs] = useState(()=>rHex(16));
   const [sessionStart, setSessionStart] = useState(Date.now());
+  const [lastFetch, setLastFetch] = useState(0);
   const endRef = useRef(null);
   const bcRef = useRef(null);
-  const knownIds = useRef(new Set());
-  const pollingRef = useRef(null);
 
   const addCLog = useCallback((type,tag,msg)=>{
     const cls={ok:'bok',err:'berr',warn:'bwarn',info:'binfo'}[type]||'binfo';
@@ -557,7 +550,7 @@ function ChatPage({ addLog, showToast }) {
     const newKs=rHex(16);
     setSessionKs(newKs); setSessionStart(Date.now()); setTtl(SESSION_TTL);
     addCLog('warn','[KDC]',`Сессия обновлена — Ks: ${newKs.substr(0,8)}…`);
-    showToast('🔑 KDC выдал новый ключ','twarn');
+    showToast('🔑 KDC выдал новый сессионный ключ','twarn');
   },[addCLog,showToast]);
 
   useEffect(()=>{
@@ -570,47 +563,55 @@ function ChatPage({ addLog, showToast }) {
     return ()=>clearInterval(t);
   },[sessionStart,renewSession]);
 
-  const handleIncoming = useCallback((allMsgs)=>{
-    const newMsgs = allMsgs.filter(m => m.from !== 'operator' && !knownIds.current.has(m.id));
-    if (!newMsgs.length) return;
-    newMsgs.forEach(m => knownIds.current.add(m.id));
-    setMessages(prev=>{
-      const ids=new Set(prev.map(x=>x.id));
-      const fresh=newMsgs.filter(m=>!ids.has(m.id));
-      if(!fresh.length) return prev;
-      const updated=[...prev,...fresh].sort((a,b)=>a.timestamp-b.timestamp);
-      saveLocalMsgs(updated);
-      fresh.forEach(()=>showToast('💬 Новое сообщение от администратора!','tok'));
-      return updated;
-    });
-  },[showToast]);
-
   useEffect(()=>{
     const local=loadLocalMsgs();
-    if(local.length){ setMessages(local); local.forEach(m=>knownIds.current.add(m.id)); }
-    addCLog('ok','[KDC]',`Ключ: ${sessionKs.substr(0,8)}… TTL=${SESSION_TTL}s`);
+    if(local.length) setMessages(local);
+    addCLog('ok','[KDC]',`Сессионный ключ: ${sessionKs.substr(0,8)}… TTL=${SESSION_TTL}s`);
+    addCLog('info','[NS]','NS-KDC протокол активен');
+  },[]);
 
+  // BroadcastChannel — same browser
+  useEffect(()=>{
     try {
       bcRef.current=new BroadcastChannel('qmg_chat_ns');
       bcRef.current.onmessage=(e)=>{
-        if(e.data?.type==='new_msg') handleIncoming([e.data.msg]);
+        if(e.data?.type==='new_msg'&&e.data.msg.from!=='operator'){
+          setMessages(prev=>{
+            if(prev.find(m=>m.id===e.data.msg.id)) return prev;
+            const updated=[...prev,e.data.msg];
+            saveLocalMsgs(updated); return updated;
+          });
+          addCLog('ok','[ЧАТ]','admin → operator: зашифрованное сообщение получено');
+          showToast('💬 Новое зашифрованное сообщение от администратора!','tok');
+        }
       };
     } catch {}
+    return ()=>{ try{bcRef.current?.close();}catch{} };
+  },[addCLog,showToast]);
 
-    if(FB_ENABLED){
-      addCLog('info','[FIREBASE]','Подключён · обновление каждые 1.5с');
-      pollingRef.current=setInterval(async()=>{
-        const all=await fbPoll();
-        if(all) handleIncoming(all);
-      },1500);
-    }
-
-    return ()=>{
-      try{bcRef.current?.close();}catch{}
-      if(pollingRef.current) clearInterval(pollingRef.current);
+  // Firebase polling — cross-device
+  useEffect(()=>{
+    const poll=async()=>{
+      const remote=await fbFetch(lastFetch);
+      if(remote.length){
+        setLastFetch(Date.now());
+        setMessages(prev=>{
+          const ids=new Set(prev.map(m=>m.id));
+          const newMsgs=remote.filter(m=>!ids.has(m.id)&&m.from!=='operator');
+          if(!newMsgs.length) return prev;
+          const updated=[...prev,...newMsgs].sort((a,b)=>a.timestamp-b.timestamp);
+          saveLocalMsgs(updated);
+          newMsgs.forEach(()=>{
+            addCLog('ok','[FIREBASE]','Новое сообщение от admin (cross-device)');
+            showToast('📡 Новое сообщение от администратора!','tok');
+          });
+          return updated;
+        });
+      }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[]);
+    const t=setInterval(poll,3000);
+    return ()=>clearInterval(t);
+  },[lastFetch,addCLog,showToast]);
 
   useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}); },[messages]);
 
@@ -619,6 +620,7 @@ function ChatPage({ addLog, showToast }) {
     let ks=sessionKs;
     if((Date.now()-sessionStart)/1000>=SESSION_TTL){
       ks=rHex(16); setSessionKs(ks); setSessionStart(Date.now());
+      addCLog('warn','[KDC]',`Автообновление ключа: ${ks.substr(0,8)}…`);
     }
     const ticket=generateNSTicket('operator','admin',ks);
     const cipher=nsEncrypt(input,ks);
@@ -627,13 +629,10 @@ function ChatPage({ addLog, showToast }) {
       from:'operator', cipher, ticket,
       timestamp:Date.now(), time:ts(),
     };
-    knownIds.current.add(msg.id);
-    setMessages(prev=>{ const u=[...prev,msg]; saveLocalMsgs(u); return u; });
-    setInput('');
-    try{bcRef.current?.postMessage({type:'new_msg',msg});}catch{}
-    fbPush(msg).then(ok=>{
-      if(ok) addCLog('ok','[FIREBASE]','Отправлено → admin получит через ~1.5с');
-    });
+    const updated=[...messages,msg];
+    setMessages(updated); saveLocalMsgs(updated); setInput('');
+    try{ bcRef.current?.postMessage({type:'new_msg',msg}); }catch{}
+    fbPush(msg).then(ok=>{ if(ok) addCLog('ok','[FIREBASE]','Опубликовано в Firebase'); });
     addCLog('ok','[NS-KDC]',`operator→admin: Ks=${ks.substr(0,8)}… Na=0x${ticket.Na}`);
   };
 
@@ -644,40 +643,46 @@ function ChatPage({ addLog, showToast }) {
   return (
     <div className="pg">
       {openModal&&<NSModal msg={openModal} onClose={()=>setOpenModal(null)} addLog={addCLog}/>}
+
       <div className="pg-tag">Чат</div>
       <div className="pg-h1">Чат — NS-KDC Шифрование</div>
       <div className="pg-sub">Needham–Schroeder протокол · Нажмите на сообщение чтобы расшифровать</div>
+
       <div className="ns-legend-box">
         <strong>Needham–Schroeder + KDC:</strong><br/>
-        1. operator→KDC: {'{ ID_op, ID_admin, Na }'}K_op — запрос ключа<br/>
-        2. KDC→operator: {'{ Ks, ID_admin, Na, { Ks, ID_op }'}K_admin{'}'}K_op — ключ выдан<br/>
-        3. operator→admin: {'{ Ks, ID_op }'}K_admin || {'{ msg }'}Ks — шифртекст<br/>
-        4. admin→operator: {'{ Nb }'}Ks → {'{ Nb−1 }'}Ks ✓ — аутентификация
+        1. operator→KDC: {'{ ID_op, ID_admin, Na }'}K_op — запрос сессионного ключа<br/>
+        2. KDC→operator: {'{ Ks, ID_admin, Na, { Ks, ID_op }'}K_admin {'}'} K_op — ключ выдан<br/>
+        3. operator→admin: {'{ Ks, ID_op }'}K_admin || {'{ msg }'}Ks — тикет + шифртекст<br/>
+        4. admin→operator: {'{ Nb }'}Ks → {'{ Nb−1 }'}Ks ✓ — взаимная аутентификация
       </div>
+
       <div className="card mb">
         <div className="card-t">
           <span>🔑 KDC Сессионный ключ</span>
-          <span style={{display:'flex',gap:8,alignItems:'center'}}>
-            <span style={{fontSize:10,color:'var(--t2)'}}>{FB_ENABLED?'🟢 Firebase·1.5s':'BroadcastChannel'}</span>
-            <span className={`bdg ${ttlCls}`}>TTL: {ttl}s</span>
-          </span>
+          <span className={`bdg ${ttlCls}`}>TTL: {ttl}s</span>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <div style={{flex:1,height:4,background:'var(--border)',borderRadius:2,overflow:'hidden'}}>
-            <div style={{width:`${ttlPct}%`,height:'100%',background:ttlColor,borderRadius:2,transition:'width 1s linear'}}/>
+            <div style={{width:`${ttlPct}%`,height:'100%',background:ttlColor,borderRadius:2,transition:'width 1s linear,background .5s'}}/>
           </div>
-          <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:11,color:'var(--t3)',flexShrink:0}}>Ks: {sessionKs.substr(0,8)}…</span>
-          <button onClick={renewSession} style={{padding:'4px 10px',background:'transparent',border:'1px solid var(--border)',borderRadius:5,color:'var(--t2)',fontSize:11,cursor:'pointer'}}>🔄</button>
+          <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:11,color:'var(--t3)',flexShrink:0}}>
+            Ks: {sessionKs.substr(0,8)}…
+          </span>
+          <button onClick={renewSession} style={{padding:'4px 10px',background:'transparent',border:'1px solid var(--border)',borderRadius:5,color:'var(--t2)',fontSize:11,cursor:'pointer'}}>
+            🔄 Обновить
+          </button>
         </div>
       </div>
+
       <div className="card">
         <div className="card-t">
           <div style={{display:'flex',alignItems:'center',gap:7}}>
             <span style={{width:7,height:7,borderRadius:'50%',background:'var(--red)',animation:'bp 2s infinite',display:'inline-block'}}></span>
-            Адмін панелі
+            admin — Әкімші (192.168.0.10)
           </div>
           <span className="bdg bok">🔐 NS+AES</span>
         </div>
+
         <div className="ns-chat-wrap">
           <div className="ns-chat-msgs">
             {!messages.length&&(
@@ -689,17 +694,26 @@ function ChatPage({ addLog, showToast }) {
               const isMe=m.from==='operator';
               const age=(Date.now()-m.timestamp)/1000;
               const ttlLeft=Math.max(0,SESSION_TTL-age);
+              const ttlExpired=ttlLeft<=0;
               const tc=ttlLeft>60?'ns-ttl-ok':ttlLeft>20?'ns-ttl-warn':'ns-ttl-dead';
               return (
                 <div key={m.id} className={`ns-msg-row ${isMe?'me':'them'}`}>
-                  <div className={`ns-bubble ${isMe?'me':'them'}`} onClick={()=>setOpenModal(m)}>
+                  <div className={`ns-bubble ${isMe?'me':'them'}`} onClick={()=>setOpenModal(m)}
+                    title="Нажмите для расшифровки по NS-протоколу">
                     <div className="ns-cipher-preview">{m.cipher.substr(0,48)}…</div>
-                    <div className="ns-lock-row"><span>🔒</span><span style={{fontFamily:'JetBrains Mono,monospace',fontSize:10,color:'var(--gold2)'}}>Нажмите для расшифровки</span></div>
+                    <div className="ns-lock-row">
+                      <span>🔒</span>
+                      <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:10,color:'var(--gold2)'}}>
+                        Нажмите для расшифровки NS-протоколом
+                      </span>
+                    </div>
                   </div>
                   <div className="ns-meta">
-                    <span>{isMe?'operator':'admin'}</span><span>·</span><span>{m.time}</span><span>·</span>
-                    <span className={`ns-ttl-pill ${tc}`}>{ttlLeft<=0?'⏰ истёк':`TTL ${Math.round(ttlLeft)}s`}</span>
-                    <span>·</span><span style={{fontFamily:'JetBrains Mono,monospace',fontSize:9,color:'var(--t3)'}}>Ks:{m.ticket?.Ks?.substr(0,6)}…</span>
+                    <span>{isMe?'operator':'admin'}</span>
+                    <span>·</span><span>{m.time}</span><span>·</span>
+                    <span className={`ns-ttl-pill ${tc}`}>{ttlExpired?'⏰ TTL истёк':`TTL ${Math.round(ttlLeft)}s`}</span>
+                    <span>·</span>
+                    <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:9,color:'var(--t3)'}}>Ks:{m.ticket?.Ks?.substr(0,6)}…</span>
                   </div>
                 </div>
               );
@@ -707,14 +721,14 @@ function ChatPage({ addLog, showToast }) {
             <div ref={endRef}/>
           </div>
           <div className="ns-inp-row">
-            <input className="ns-chat-inp" placeholder="Сообщение будет зашифровано NS..." value={input}
-              onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendMsg()}/>
+            <input className="ns-chat-inp" placeholder="Сообщение будет зашифровано NS-протоколом..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendMsg()} />
             <button className="ns-send-btn" onClick={sendMsg}>🔐 Жіберу</button>
           </div>
         </div>
+
         {chatLogs.length>0&&(
           <div className="ns-log-strip">
-            {chatLogs.slice(0,5).map((l,i)=>(
+            {chatLogs.slice(0,6).map((l,i)=>(
               <div key={i} className="ns-log-item">
                 <span className="ns-log-t">{l.t}</span>
                 <span className={`ns-log-tag bdg ${l.cls}`}>{l.tag}</span>
