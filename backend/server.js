@@ -6,6 +6,9 @@ import { Resend } from "resend";
 dotenv.config();
 
 const app = express();
+app.get('/', (req, res) => {
+  res.send('Backend works!')
+})
 
 app.use(cors());
 app.use(express.json());
