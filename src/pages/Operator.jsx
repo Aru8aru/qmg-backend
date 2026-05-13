@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FIREBASE CONFIG — то же значение что в Admin.jsx
-// ─────────────────────────────────────────────────────────────────────────────
-const FB_URL = "https://YOUR_PROJECT-default-rtdb.firebaseio.com";
+const BACKEND = "https://qmg-backend.onrender.com";
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 const GLOBAL_CSS = `
@@ -29,7 +26,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
   background-image:linear-gradient(rgba(67,160,71,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(67,160,71,.012) 1px,transparent 1px);
   background-size:40px 40px;pointer-events:none}
 
-/* Topbar */
 .topbar{height:54px;min-height:54px;display:flex;align-items:center;justify-content:space-between;
   padding:0 22px;background:var(--navy2);border-bottom:2px solid var(--green);flex-shrink:0;position:relative;z-index:10}
 .tb-l{display:flex;align-items:center;gap:14px}
@@ -55,7 +51,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .tout{padding:6px 14px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--t2);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all .2s}
 .tout:hover{border-color:var(--red);color:var(--red)}
 
-/* Layout */
 .body-wrap{flex:1;display:flex;overflow:hidden;position:relative;z-index:1}
 .sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .3s,min-width .3s;flex-shrink:0}
 .sidebar.collapsed{width:0;min-width:0}
@@ -100,7 +95,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .berr{background:var(--red2);color:var(--red)}
 .binfo{background:rgba(21,101,192,.12);color:var(--blue3)}
 
-/* Sensor */
 .sc{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center;transition:border-color .3s}
 .sc.alarm{animation:alarm 0.8s infinite}
 .sc-title{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
@@ -142,9 +136,7 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .lt{font-family:'JetBrains Mono',monospace;color:var(--t3);flex-shrink:0;font-size:10px;padding-top:1px}
 .lm{color:var(--t2);flex:1;line-height:1.5}
 
-/* ═══════════════════════════════════════════════════════
-   NS-KDC CHAT STYLES (same as Admin, green theme)
-═══════════════════════════════════════════════════════ */
+/* NS Chat */
 .ns-chat-wrap{display:flex;flex-direction:column;height:460px}
 .ns-chat-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 0}
 .ns-chat-msgs::-webkit-scrollbar{width:3px}
@@ -177,7 +169,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .ns-log-tag{padding:0px 5px;border-radius:3px;font-size:9px;font-weight:700;flex-shrink:0}
 .ns-log-m{color:var(--t2);line-height:1.5}
 
-/* NS Modal */
 .ns-modal-overlay{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);padding:16px}
 .ns-modal{background:var(--bg2);border:1px solid rgba(200,150,12,.3);border-radius:14px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.8)}
 .ns-modal::-webkit-scrollbar{width:3px}
@@ -201,7 +192,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .ns-step-formula .hi2{color:var(--green2)}
 .ns-step-formula .hi3{color:var(--blue3)}
 .ns-inp-group{display:flex;flex-direction:column;gap:5px;margin-top:6px}
-.ns-inp-label{font-size:11px;color:var(--t2)}
 .ns-inp-hint{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace}
 .ns-step-inp-row{display:flex;gap:7px;align-items:center}
 .ns-step-inp{flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s}
@@ -217,14 +207,12 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .ns-modal-log{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 .ns-modal-log-title{font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 
-/* Toast */
 .toast{position:fixed;bottom:22px;right:22px;z-index:8000;padding:12px 18px;border-radius:9px;font-size:13px;background:var(--bg2);border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,.4);max-width:320px;transition:all .3s;opacity:0;transform:translateY(18px);pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.tok{border-color:rgba(67,160,71,.4);background:var(--green3)}
 .toast.terr{border-color:rgba(229,57,53,.4);background:var(--red2)}
 .toast.twarn{border-color:rgba(245,127,23,.4);background:var(--amber2)}
 
-/* Auth */
 .auth-wall{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy),#0a1f0a)}
 .aw{background:var(--bg2);border:1px solid rgba(67,160,71,.25);border-radius:16px;width:420px;padding:36px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.7)}
 .aw h2{font-family:'Playfair Display',serif;font-size:22px;color:#fff;margin:16px 0 8px}
@@ -271,7 +259,7 @@ const INIT_SENSORS = [
   {id:'G-05',name:'Газ қысымы',loc:'Сепаратор-2',val:4.2,base:4.2,unit:'МПа',min:3,max:5,dr:0.05},
 ];
 
-// ─── NS-KDC Helpers (identical to Admin) ─────────────────────────────────────
+// ─── NS-KDC Helpers ───────────────────────────────────────────────────────────
 const SESSION_TTL = 90;
 const pp = n => String(n).padStart(2,'0');
 const ts = () => { const d=new Date(); return `${pp(d.getHours())}:${pp(d.getMinutes())}:${pp(d.getSeconds())}`; };
@@ -289,139 +277,89 @@ function nsDecrypt(cipher, Ks) {
     const hex = cipher.replace(/\s/g,'');
     const keyBytes = Ks.match(/.{1,2}/g).map(h=>parseInt(h,16));
     let text='';
-    for(let i=0;i<hex.length;i+=2) {
-      const b = parseInt(hex.substr(i,2),16) ^ keyBytes[(i/2)%keyBytes.length];
-      text += String.fromCharCode(b);
+    for(let i=0;i<hex.length;i+=2){
+      const b=parseInt(hex.substr(i,2),16)^keyBytes[(i/2)%keyBytes.length];
+      text+=String.fromCharCode(b);
     }
     return text;
   } catch { return null; }
 }
 
 function generateNSTicket(from, to, Ks) {
-  const Na = rHex(4);
-  const Nb = rHex(4);
+  const Na=rHex(4), Nb=rHex(4);
   return {
-    Na, Nb, Ks, from, to, timestamp: Date.now(),
-    steps: [
-      {
-        label:`${from} → KDC`,
-        formula:`{ ID_${from}, ID_${to}, Na=0x${Na} } K_${from}`,
-        desc:`Инициатор запрашивает сессионный ключ у KDC. Nonce Na защищает от replay-атак.`,
-        field:'Na', expected:Na, hint:`Na = 0x${Na}`, placeholder:`0x${Na.substr(0,2)}__`
-      },
-      {
-        label:`KDC → ${from}`,
-        formula:`{ Ks=0x${Ks.substr(0,8)}…, ID_${to}, Na=0x${Na}, { Ks, ID_${from} }K_${to} } K_${from}`,
-        desc:`KDC выдаёт сессионный ключ Ks и тикет для получателя.`,
-        field:'Ks', expected:Ks.substr(0,8), hint:`Ks начинается с ${Ks.substr(0,4)}`, placeholder:`${Ks.substr(0,4)}____`
-      },
-      {
-        label:`${from} → ${to}`,
-        formula:`{ Ks, ID_${from} }K_${to}  ||  { msg }Ks`,
-        desc:`Отправитель передаёт тикет и зашифрованное сообщение получателю.`,
-        field:'ticket',
-        ticketStr:`{ Ks=0x${Ks.substr(0,8)}…, ID_${from} }K_${to}`,
-        hint:`Подтвердите получение тикета`, placeholder:`ok`
-      },
-      {
-        label:`${to} → ${from}`,
-        formula:`{ Nb=0x${Nb} }Ks  →  { Nb−1 }Ks  ✓  Взаимная аутентификация`,
-        desc:`Получатель доказывает знание Ks через Nb. Взаимная аутентификация завершена.`,
-        field:'Nb', expected:Nb, hint:`Nb = 0x${Nb}`, placeholder:`0x${Nb.substr(0,2)}__`
-      }
+    Na, Nb, Ks, from, to, timestamp:Date.now(),
+    steps:[
+      {label:`${from} → KDC`,formula:`{ ID_${from}, ID_${to}, Na=0x${Na} } K_${from}`,desc:`Инициатор запрашивает сессионный ключ у KDC. Nonce Na защищает от replay-атак.`,field:'Na',expected:Na,hint:`Na = 0x${Na}`,placeholder:`0x${Na.substr(0,2)}__`},
+      {label:`KDC → ${from}`,formula:`{ Ks=0x${Ks.substr(0,8)}…, ID_${to}, Na=0x${Na}, { Ks, ID_${from} }K_${to} } K_${from}`,desc:`KDC выдаёт сессионный ключ Ks и тикет для получателя.`,field:'Ks',expected:Ks.substr(0,8),hint:`Ks начинается с ${Ks.substr(0,4)}`,placeholder:`${Ks.substr(0,4)}____`},
+      {label:`${from} → ${to}`,formula:`{ Ks, ID_${from} }K_${to}  ||  { msg }Ks`,desc:`Отправитель передаёт тикет и зашифрованное сообщение получателю.`,field:'ticket',ticketStr:`{ Ks=0x${Ks.substr(0,8)}…, ID_${from} }K_${to}`,hint:`Подтвердите получение тикета`,placeholder:`ok`},
+      {label:`${to} → ${from}`,formula:`{ Nb=0x${Nb} }Ks  →  { Nb−1 }Ks  ✓  Взаимная аутентификация`,desc:`Получатель доказывает знание Ks через Nb. Взаимная аутентификация завершена.`,field:'Nb',expected:Nb,hint:`Nb = 0x${Nb}`,placeholder:`0x${Nb.substr(0,2)}__`}
     ]
   };
 }
 
-// ─── Firebase ─────────────────────────────────────────────────────────────────
-async function fbPush(msg) {
-  if(!FB_URL||FB_URL.includes('YOUR_PROJECT')) return false;
+// ─── Backend Chat API ─────────────────────────────────────────────────────────
+async function apiSendMsg(msg) {
   try {
-    const res = await fetch(`${FB_URL}/qmg_chat/${msg.id}.json`,{
-      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(msg)
+    const res = await fetch(`${BACKEND}/chat/send`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(msg),
     });
     return res.ok;
   } catch { return false; }
 }
 
-async function fbFetch(since=0) {
-  if(!FB_URL||FB_URL.includes('YOUR_PROJECT')) return [];
+async function apiFetchMsgs(since=0) {
   try {
-    const res = await fetch(`${FB_URL}/qmg_chat.json`);
+    const res = await fetch(`${BACKEND}/chat/get?since=${since}`);
     if(!res.ok) return [];
     const data = await res.json();
-    if(!data) return [];
-    return Object.values(data).filter(m=>m&&m.timestamp>since).sort((a,b)=>a.timestamp-b.timestamp);
+    return data.messages || [];
   } catch { return []; }
 }
 
-function loadLocalMsgs() { try { return JSON.parse(localStorage.getItem('qmg_msgs_ns')||'[]'); } catch { return []; } }
-function saveLocalMsgs(msgs) { try { localStorage.setItem('qmg_msgs_ns',JSON.stringify(msgs.slice(-80))); } catch {} }
-
-// ─── NS Modal (identical logic, operator role) ────────────────────────────────
+// ─── NS Modal ─────────────────────────────────────────────────────────────────
 function NSModal({ msg, onClose, addLog }) {
-  const [step, setStep] = useState(0);
-  const [inputs, setInputs] = useState(['','','','']);
-  const [errors, setErrors] = useState(['','','','']);
-  const [modalLogs, setModalLogs] = useState([]);
-  const [decrypted, setDecrypted] = useState('');
+  const [step,setStep]=useState(0);
+  const [inputs,setInputs]=useState(['','','','']);
+  const [errors,setErrors]=useState(['','','','']);
+  const [modalLogs,setModalLogs]=useState([]);
+  const [decrypted,setDecrypted]=useState('');
 
-  const expired = (Date.now() - msg.timestamp) / 1000 > SESSION_TTL;
-  const ticket = msg.ticket;
-
-  const addMLog = (type,text)=>{ setModalLogs(p=>[{t:ts(),type,text},...p].slice(0,8)); };
+  const expired=(Date.now()-msg.timestamp)/1000>SESSION_TTL;
+  const ticket=msg.ticket;
+  const addMLog=(type,text)=>setModalLogs(p=>[{t:ts(),type,text},...p].slice(0,8));
 
   useEffect(()=>{
     addMLog('info',`NS сессия открыта — msg #${msg.id.substr(-6)}`);
     addMLog('info',`Отправитель: ${msg.from} → Получатель: operator`);
   },[]);
 
-  const verify = (stepIdx, val) => {
-    const s = ticket.steps[stepIdx];
-    const clean = val.trim().replace(/^0x/i,'').toUpperCase();
+  const verify=(stepIdx,val)=>{
+    const s=ticket.steps[stepIdx];
+    const clean=val.trim().replace(/^0x/i,'').toUpperCase();
     if(stepIdx===0){
-      if(clean===s.expected.toUpperCase()||(clean.length>=4&&s.expected.toUpperCase().startsWith(clean))){
-        addMLog('ok',`✓ Na верифицирован (0x${s.expected})`);
-        addLog('ok','[NS-STEP1]','Na верифицирован → OK');
-        return true;
-      }
-      addMLog('err',`✗ Неверный Na`); addLog('err','[NS-STEP1]','Неверный Na');
-      return false;
+      if(clean===s.expected.toUpperCase()||(clean.length>=4&&s.expected.toUpperCase().startsWith(clean))){addMLog('ok',`✓ Na верифицирован`);addLog('ok','[NS-STEP1]','Na ✓');return true;}
+      addMLog('err','✗ Неверный Na');addLog('err','[NS-STEP1]','Неверный Na');return false;
     }
     if(stepIdx===1){
-      if(clean.length>=4&&s.expected.toUpperCase().startsWith(clean)){
-        addMLog('ok','✓ Ks верифицирован');
-        addLog('ok','[NS-STEP2]','Ks верифицирован');
-        return true;
-      }
-      addMLog('err','✗ Неверный Ks'); addLog('err','[NS-STEP2]','Неверный Ks');
-      return false;
+      if(clean.length>=4&&s.expected.toUpperCase().startsWith(clean)){addMLog('ok','✓ Ks верифицирован');addLog('ok','[NS-STEP2]','Ks ✓');return true;}
+      addMLog('err','✗ Неверный Ks');addLog('err','[NS-STEP2]','Неверный Ks');return false;
     }
-    if(stepIdx===2){
-      if(val.trim().length>0){ addMLog('ok','✓ Тикет получен'); addLog('ok','[NS-STEP3]','Тикет получен'); return true; }
-      return false;
-    }
+    if(stepIdx===2){if(val.trim().length>0){addMLog('ok','✓ Тикет получен');addLog('ok','[NS-STEP3]','Тикет ✓');return true;}return false;}
     if(stepIdx===3){
-      if(clean===s.expected.toUpperCase()||(clean.length>=4&&s.expected.toUpperCase().startsWith(clean))){
-        addMLog('ok','✓ Nb верифицирован — взаимная аутентификация ✓');
-        addLog('ok','[NS-STEP4]','Взаимная аутентификация завершена');
-        return true;
-      }
-      addMLog('err','✗ Неверный Nb — возможна replay-атака!');
-      addLog('err','[NS-STEP4]','Неверный Nb');
-      return false;
+      if(clean===s.expected.toUpperCase()||(clean.length>=4&&s.expected.toUpperCase().startsWith(clean))){addMLog('ok','✓ Nb — взаимная аутентификация ✓');addLog('ok','[NS-STEP4]','Nb ✓');return true;}
+      addMLog('err','✗ Неверный Nb — replay-атака?');addLog('err','[NS-STEP4]','Неверный Nb');return false;
     }
     return false;
   };
 
-  const handleConfirm = (stepIdx) => {
+  const handleConfirm=(stepIdx)=>{
     if(verify(stepIdx,inputs[stepIdx])){
       setErrors(p=>{const n=[...p];n[stepIdx]='';return n;});
-      if(stepIdx===3){
-        setDecrypted(nsDecrypt(msg.cipher,ticket.Ks)||'[Ошибка]');
-        addMLog('ok','✓ Сообщение расшифровано!');
-        setStep(4);
-      } else setStep(stepIdx+1);
+      if(stepIdx===3){setDecrypted(nsDecrypt(msg.cipher,ticket.Ks)||'[Ошибка]');addMLog('ok','✓ Расшифровано!');setStep(4);}
+      else setStep(stepIdx+1);
     } else {
       setErrors(p=>{const n=[...p];n[stepIdx]='Неверное значение.';return n;});
     }
@@ -439,32 +377,24 @@ function NSModal({ msg, onClose, addLog }) {
           <button className="ns-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="ns-modal-body">
-
           <div style={{display:'flex',gap:12,marginBottom:14,padding:'10px 12px',background:'var(--bg3)',borderRadius:7,border:'1px solid var(--border)',fontSize:11,color:'var(--t2)',fontFamily:'JetBrains Mono,monospace'}}>
             <span>От: <strong style={{color:'var(--text)'}}>{msg.from}</strong></span>
             <span>•</span><span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
             <span>•</span>
-            <span style={{color:expired?'var(--red)':'var(--green2)'}}>
-              TTL: {expired?'ИСТЁК':`${Math.max(0,SESSION_TTL-Math.floor((Date.now()-msg.timestamp)/1000))}s`}
-            </span>
-            <span>•</span>
-            <span>Ks: {ticket.Ks.substr(0,8)}…</span>
+            <span style={{color:expired?'var(--red)':'var(--green2)'}}>TTL: {expired?'ИСТЁК':`${Math.max(0,SESSION_TTL-Math.floor((Date.now()-msg.timestamp)/1000))}s`}</span>
+            <span>•</span><span>Ks: {ticket.Ks.substr(0,8)}…</span>
           </div>
-
           <div style={{padding:'8px 12px',background:'rgba(0,0,0,.4)',borderRadius:6,border:'1px solid var(--border2)',marginBottom:14}}>
             <div style={{fontSize:9,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>Зашифрованное сообщение:</div>
             <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:10,color:'var(--t2)',wordBreak:'break-all',lineHeight:1.7}}>{msg.cipher}</div>
           </div>
-
-          {expired && <div className="ns-expired-box">⏰ TTL истёк. Сессионный ключ недействителен.</div>}
-
+          {expired&&<div className="ns-expired-box">⏰ TTL истёк. Сессионный ключ недействителен.</div>}
           {step===4&&!expired&&(
             <div className="ns-success-box">
               <div className="ns-success-title">✓ Протокол завершён — взаимная аутентификация пройдена</div>
               <div className="ns-revealed">{decrypted}</div>
             </div>
           )}
-
           {!expired&&step<4&&ticket.steps.map((s,i)=>{
             const state=stepState(i);
             return (
@@ -472,33 +402,13 @@ function NSModal({ msg, onClose, addLog }) {
                 <div className={`ns-step-num ${stepNumClass(i)}`}>{i<step?'✓':i+1}</div>
                 <div className="ns-step-content">
                   <div className="ns-step-title">{s.label}</div>
-                  <div className="ns-step-formula"
-                    dangerouslySetInnerHTML={{__html:s.formula
-                      .replace(/Na=0x\w+/g,m=>`<span class="hi">${m}</span>`)
-                      .replace(/Nb=0x\w+/g,m=>`<span class="hi3">${m}</span>`)
-                      .replace(/Ks=0x[\w…]+/g,m=>`<span class="hi2">${m}</span>`)
-                      .replace(/✓[^<]*/g,m=>`<span class="hi2">${m}</span>`)
-                    }}
-                  />
+                  <div className="ns-step-formula" dangerouslySetInnerHTML={{__html:s.formula.replace(/Na=0x\w+/g,m=>`<span class="hi">${m}</span>`).replace(/Nb=0x\w+/g,m=>`<span class="hi3">${m}</span>`).replace(/Ks=0x[\w…]+/g,m=>`<span class="hi2">${m}</span>`).replace(/✓[^<]*/g,m=>`<span class="hi2">${m}</span>`)}}/>
                   <div style={{fontSize:11,color:'var(--t3)',marginBottom:state==='active'?8:0}}>{s.desc}</div>
                   {state==='active'&&(
                     <div className="ns-inp-group">
-                      {i===2?(
-                        <>
-                          <div style={{fontSize:11,color:'var(--t2)',fontFamily:'JetBrains Mono,monospace',padding:'6px 10px',background:'rgba(0,0,0,.3)',borderRadius:5,marginBottom:6}}>{s.ticketStr}</div>
-                          <div className="ns-inp-hint">Введите «ok» для подтверждения:</div>
-                        </>
-                      ):(
-                        <div className="ns-inp-hint">{s.hint}</div>
-                      )}
+                      {i===2?(<><div style={{fontSize:11,color:'var(--t2)',fontFamily:'JetBrains Mono,monospace',padding:'6px 10px',background:'rgba(0,0,0,.3)',borderRadius:5,marginBottom:6}}>{s.ticketStr}</div><div className="ns-inp-hint">Введите «ok» для подтверждения:</div></>):(<div className="ns-inp-hint">{s.hint}</div>)}
                       <div className="ns-step-inp-row">
-                        <input
-                          className={`ns-step-inp${errors[i]?' err':''}`}
-                          placeholder={s.placeholder}
-                          value={inputs[i]}
-                          onChange={e=>setInputs(p=>{const n=[...p];n[i]=e.target.value;return n;})}
-                          onKeyDown={e=>e.key==='Enter'&&handleConfirm(i)}
-                        />
+                        <input className={`ns-step-inp${errors[i]?' err':''}`} placeholder={s.placeholder} value={inputs[i]} onChange={e=>setInputs(p=>{const n=[...p];n[i]=e.target.value;return n;})} onKeyDown={e=>e.key==='Enter'&&handleConfirm(i)}/>
                         <button className="ns-step-btn" onClick={()=>handleConfirm(i)}>Подтвердить →</button>
                       </div>
                       {errors[i]&&<div className="ns-err-msg">{errors[i]}</div>}
@@ -508,16 +418,11 @@ function NSModal({ msg, onClose, addLog }) {
               </div>
             );
           })}
-
           <div className="ns-modal-log">
             <div className="ns-modal-log-title">📋 Лог сессии</div>
             <div className="log-list">
               {modalLogs.map((l,i)=>(
-                <div key={i} className="li">
-                  <span className="lt">{l.t}</span>
-                  <span className={`bdg ${LC[l.type]||'binfo'}`}>[NS]</span>
-                  <span className="lm">{l.text}</span>
-                </div>
+                <div key={i} className="li"><span className="lt">{l.t}</span><span className={`bdg ${LC[l.type]||'binfo'}`}>[NS]</span><span className="lm">{l.text}</span></div>
               ))}
             </div>
           </div>
@@ -527,28 +432,27 @@ function NSModal({ msg, onClose, addLog }) {
   );
 }
 
-// ─── Chat Page (Operator) ─────────────────────────────────────────────────────
+// ─── Chat Page ────────────────────────────────────────────────────────────────
 function ChatPage({ addLog, showToast }) {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [openModal, setOpenModal] = useState(null);
-  const [chatLogs, setChatLogs] = useState([]);
-  const [ttl, setTtl] = useState(SESSION_TTL);
-  const [sessionKs, setSessionKs] = useState(()=>rHex(16));
-  const [sessionStart, setSessionStart] = useState(Date.now());
-  const [lastFetch, setLastFetch] = useState(0);
-  const endRef = useRef(null);
-  const bcRef = useRef(null);
+  const [messages,setMessages]=useState([]);
+  const [input,setInput]=useState('');
+  const [openModal,setOpenModal]=useState(null);
+  const [chatLogs,setChatLogs]=useState([]);
+  const [ttl,setTtl]=useState(SESSION_TTL);
+  const [sessionKs,setSessionKs]=useState(()=>rHex(16));
+  const [sessionStart,setSessionStart]=useState(Date.now());
+  const [lastFetch,setLastFetch]=useState(0);
+  const endRef=useRef(null);
 
-  const addCLog = useCallback((type,tag,msg)=>{
+  const addCLog=useCallback((type,tag,msg)=>{
     const cls={ok:'bok',err:'berr',warn:'bwarn',info:'binfo'}[type]||'binfo';
     setChatLogs(p=>[{t:ts(),cls,tag,msg},...p].slice(0,20));
     addLog(type,tag,msg);
   },[addLog]);
 
-  const renewSession = useCallback(()=>{
+  const renewSession=useCallback(()=>{
     const newKs=rHex(16);
-    setSessionKs(newKs); setSessionStart(Date.now()); setTtl(SESSION_TTL);
+    setSessionKs(newKs);setSessionStart(Date.now());setTtl(SESSION_TTL);
     addCLog('warn','[KDC]',`Сессия обновлена — Ks: ${newKs.substr(0,8)}…`);
     showToast('🔑 KDC выдал новый сессионный ключ','twarn');
   },[addCLog,showToast]);
@@ -564,75 +468,55 @@ function ChatPage({ addLog, showToast }) {
   },[sessionStart,renewSession]);
 
   useEffect(()=>{
-    const local=loadLocalMsgs();
-    if(local.length) setMessages(local);
     addCLog('ok','[KDC]',`Сессионный ключ: ${sessionKs.substr(0,8)}… TTL=${SESSION_TTL}s`);
     addCLog('info','[NS]','NS-KDC протокол активен');
-  },[]);
 
-  // BroadcastChannel — same browser
-  useEffect(()=>{
-    try {
-      bcRef.current=new BroadcastChannel('qmg_chat_ns');
-      bcRef.current.onmessage=(e)=>{
-        if(e.data?.type==='new_msg'&&e.data.msg.from!=='operator'){
-          setMessages(prev=>{
-            if(prev.find(m=>m.id===e.data.msg.id)) return prev;
-            const updated=[...prev,e.data.msg];
-            saveLocalMsgs(updated); return updated;
-          });
-          addCLog('ok','[ЧАТ]','admin → operator: зашифрованное сообщение получено');
-          showToast('💬 Новое зашифрованное сообщение от администратора!','tok');
-        }
-      };
-    } catch {}
-    return ()=>{ try{bcRef.current?.close();}catch{} };
-  },[addCLog,showToast]);
+    // Load all on mount
+    apiFetchMsgs(0).then(all=>{
+      if(all.length){
+        setMessages(all.sort((a,b)=>a.timestamp-b.timestamp));
+        setLastFetch(Date.now());
+      }
+    });
 
-  // Firebase polling — cross-device
-  useEffect(()=>{
+    // Poll every 2s
     const poll=async()=>{
-      const remote=await fbFetch(lastFetch);
-      if(remote.length){
+      const newMsgs=await apiFetchMsgs(lastFetch);
+      if(newMsgs.length){
         setLastFetch(Date.now());
         setMessages(prev=>{
           const ids=new Set(prev.map(m=>m.id));
-          const newMsgs=remote.filter(m=>!ids.has(m.id)&&m.from!=='operator');
-          if(!newMsgs.length) return prev;
-          const updated=[...prev,...newMsgs].sort((a,b)=>a.timestamp-b.timestamp);
-          saveLocalMsgs(updated);
-          newMsgs.forEach(()=>{
-            addCLog('ok','[FIREBASE]','Новое сообщение от admin (cross-device)');
-            showToast('📡 Новое сообщение от администратора!','tok');
+          const fresh=newMsgs.filter(m=>!ids.has(m.id)&&m.from!=='operator');
+          if(!fresh.length) return prev;
+          fresh.forEach(()=>{
+            addCLog('ok','[ЧАТ]','admin → operator: зашифрованное сообщение получено');
+            showToast('💬 Новое зашифрованное сообщение от администратора!','tok');
           });
-          return updated;
+          return [...prev,...fresh].sort((a,b)=>a.timestamp-b.timestamp);
         });
       }
     };
-    const t=setInterval(poll,3000);
+    const t=setInterval(poll,2000);
     return ()=>clearInterval(t);
-  },[lastFetch,addCLog,showToast]);
+  },[]);
 
-  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}); },[messages]);
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'});},[messages]);
 
-  const sendMsg=()=>{
+  const sendMsg=async()=>{
     if(!input.trim()) return;
     let ks=sessionKs;
     if((Date.now()-sessionStart)/1000>=SESSION_TTL){
-      ks=rHex(16); setSessionKs(ks); setSessionStart(Date.now());
+      ks=rHex(16);setSessionKs(ks);setSessionStart(Date.now());
       addCLog('warn','[KDC]',`Автообновление ключа: ${ks.substr(0,8)}…`);
     }
     const ticket=generateNSTicket('operator','admin',ks);
     const cipher=nsEncrypt(input,ks);
-    const msg={
-      id:`op_${Date.now()}_${rHex(2)}`,
-      from:'operator', cipher, ticket,
-      timestamp:Date.now(), time:ts(),
-    };
-    const updated=[...messages,msg];
-    setMessages(updated); saveLocalMsgs(updated); setInput('');
-    try{ bcRef.current?.postMessage({type:'new_msg',msg}); }catch{}
-    fbPush(msg).then(ok=>{ if(ok) addCLog('ok','[FIREBASE]','Опубликовано в Firebase'); });
+    const msg={id:`op_${Date.now()}_${rHex(2)}`,from:'operator',cipher,ticket,timestamp:Date.now(),time:ts()};
+    setMessages(prev=>[...prev,msg]);
+    setInput('');
+    const ok=await apiSendMsg(msg);
+    if(ok) addCLog('ok','[BACKEND]','Сообщение сохранено в MongoDB');
+    else { addCLog('err','[BACKEND]','Ошибка сохранения'); showToast('⚠ Ошибка отправки','terr'); }
     addCLog('ok','[NS-KDC]',`operator→admin: Ks=${ks.substr(0,8)}… Na=0x${ticket.Na}`);
   };
 
@@ -643,11 +527,9 @@ function ChatPage({ addLog, showToast }) {
   return (
     <div className="pg">
       {openModal&&<NSModal msg={openModal} onClose={()=>setOpenModal(null)} addLog={addCLog}/>}
-
       <div className="pg-tag">Чат</div>
       <div className="pg-h1">Чат — NS-KDC Шифрование</div>
       <div className="pg-sub">Needham–Schroeder протокол · Нажмите на сообщение чтобы расшифровать</div>
-
       <div className="ns-legend-box">
         <strong>Needham–Schroeder + KDC:</strong><br/>
         1. operator→KDC: {'{ ID_op, ID_admin, Na }'}K_op — запрос сессионного ключа<br/>
@@ -655,25 +537,16 @@ function ChatPage({ addLog, showToast }) {
         3. operator→admin: {'{ Ks, ID_op }'}K_admin || {'{ msg }'}Ks — тикет + шифртекст<br/>
         4. admin→operator: {'{ Nb }'}Ks → {'{ Nb−1 }'}Ks ✓ — взаимная аутентификация
       </div>
-
       <div className="card mb">
-        <div className="card-t">
-          <span>🔑 KDC Сессионный ключ</span>
-          <span className={`bdg ${ttlCls}`}>TTL: {ttl}s</span>
-        </div>
+        <div className="card-t"><span>🔑 KDC Сессионный ключ</span><span className={`bdg ${ttlCls}`}>TTL: {ttl}s</span></div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <div style={{flex:1,height:4,background:'var(--border)',borderRadius:2,overflow:'hidden'}}>
             <div style={{width:`${ttlPct}%`,height:'100%',background:ttlColor,borderRadius:2,transition:'width 1s linear,background .5s'}}/>
           </div>
-          <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:11,color:'var(--t3)',flexShrink:0}}>
-            Ks: {sessionKs.substr(0,8)}…
-          </span>
-          <button onClick={renewSession} style={{padding:'4px 10px',background:'transparent',border:'1px solid var(--border)',borderRadius:5,color:'var(--t2)',fontSize:11,cursor:'pointer'}}>
-            🔄 Обновить
-          </button>
+          <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:11,color:'var(--t3)',flexShrink:0}}>Ks: {sessionKs.substr(0,8)}…</span>
+          <button onClick={renewSession} style={{padding:'4px 10px',background:'transparent',border:'1px solid var(--border)',borderRadius:5,color:'var(--t2)',fontSize:11,cursor:'pointer'}}>🔄 Обновить</button>
         </div>
       </div>
-
       <div className="card">
         <div className="card-t">
           <div style={{display:'flex',alignItems:'center',gap:7}}>
@@ -682,15 +555,10 @@ function ChatPage({ addLog, showToast }) {
           </div>
           <span className="bdg bok">🔐 NS+AES</span>
         </div>
-
         <div className="ns-chat-wrap">
           <div className="ns-chat-msgs">
-            {!messages.length&&(
-              <div style={{textAlign:'center',color:'var(--t3)',fontSize:12,padding:28}}>
-                Сообщений нет. Отправьте первое зашифрованное сообщение!
-              </div>
-            )}
-            {messages.map((m)=>{
+            {!messages.length&&(<div style={{textAlign:'center',color:'var(--t3)',fontSize:12,padding:28}}>Сообщений нет. Отправьте первое зашифрованное сообщение!</div>)}
+            {messages.map(m=>{
               const isMe=m.from==='operator';
               const age=(Date.now()-m.timestamp)/1000;
               const ttlLeft=Math.max(0,SESSION_TTL-age);
@@ -698,22 +566,14 @@ function ChatPage({ addLog, showToast }) {
               const tc=ttlLeft>60?'ns-ttl-ok':ttlLeft>20?'ns-ttl-warn':'ns-ttl-dead';
               return (
                 <div key={m.id} className={`ns-msg-row ${isMe?'me':'them'}`}>
-                  <div className={`ns-bubble ${isMe?'me':'them'}`} onClick={()=>setOpenModal(m)}
-                    title="Нажмите для расшифровки по NS-протоколу">
+                  <div className={`ns-bubble ${isMe?'me':'them'}`} onClick={()=>setOpenModal(m)} title="Нажмите для расшифровки">
                     <div className="ns-cipher-preview">{m.cipher.substr(0,48)}…</div>
-                    <div className="ns-lock-row">
-                      <span>🔒</span>
-                      <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:10,color:'var(--gold2)'}}>
-                        Нажмите для расшифровки NS-протоколом
-                      </span>
-                    </div>
+                    <div className="ns-lock-row"><span>🔒</span><span style={{fontFamily:'JetBrains Mono,monospace',fontSize:10,color:'var(--gold2)'}}>Нажмите для расшифровки NS-протоколом</span></div>
                   </div>
                   <div className="ns-meta">
-                    <span>{isMe?'operator':'admin'}</span>
-                    <span>·</span><span>{m.time}</span><span>·</span>
+                    <span>{isMe?'operator':'admin'}</span><span>·</span><span>{m.time}</span><span>·</span>
                     <span className={`ns-ttl-pill ${tc}`}>{ttlExpired?'⏰ TTL истёк':`TTL ${Math.round(ttlLeft)}s`}</span>
-                    <span>·</span>
-                    <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:9,color:'var(--t3)'}}>Ks:{m.ticket?.Ks?.substr(0,6)}…</span>
+                    <span>·</span><span style={{fontFamily:'JetBrains Mono,monospace',fontSize:9,color:'var(--t3)'}}>Ks:{m.ticket?.Ks?.substr(0,6)}…</span>
                   </div>
                 </div>
               );
@@ -721,19 +581,14 @@ function ChatPage({ addLog, showToast }) {
             <div ref={endRef}/>
           </div>
           <div className="ns-inp-row">
-            <input className="ns-chat-inp" placeholder="Сообщение будет зашифровано NS-протоколом..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendMsg()} />
+            <input className="ns-chat-inp" placeholder="Сообщение будет зашифровано NS-протоколом..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendMsg()}/>
             <button className="ns-send-btn" onClick={sendMsg}>🔐 Жіберу</button>
           </div>
         </div>
-
         {chatLogs.length>0&&(
           <div className="ns-log-strip">
             {chatLogs.slice(0,6).map((l,i)=>(
-              <div key={i} className="ns-log-item">
-                <span className="ns-log-t">{l.t}</span>
-                <span className={`ns-log-tag bdg ${l.cls}`}>{l.tag}</span>
-                <span className="ns-log-m">{l.msg}</span>
-              </div>
+              <div key={i} className="ns-log-item"><span className="ns-log-t">{l.t}</span><span className={`ns-log-tag bdg ${l.cls}`}>{l.tag}</span><span className="ns-log-m">{l.msg}</span></div>
             ))}
           </div>
         )}
@@ -743,55 +598,13 @@ function ChatPage({ addLog, showToast }) {
 }
 
 // ─── Other pages ──────────────────────────────────────────────────────────────
-function AuthWall({ onLogin }) {
-  const [user,setUser]=useState(''); const [pass,setPass]=useState(''); const [err,setErr]=useState('');
-  const tryLogin=()=>{
-    if(user==='operator'&&pass==='op2025'){
-      try{localStorage.setItem('qmg_user',user);localStorage.setItem('qmg_role','operator');}catch{}
-      onLogin(user);
-    } else setErr('Қате логин немесе пароль');
-  };
-  return (
-    <div className="auth-wall">
-      <div className="aw">
-        <div style={{fontSize:48}}>🛡️</div>
-        <h2>Оператор панелі</h2>
-        <p>Демо: <strong style={{color:'#66bb6a'}}>operator / op2025</strong></p>
-        <div className="aw-fields">
-          <input className="aw-inp" placeholder="Логин" value={user} onChange={e=>setUser(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryLogin()} />
-          <input className="aw-inp" type="password" placeholder="Пароль" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryLogin()} />
-        </div>
-        {err&&<div className="aw-err">{err}</div>}
-        <button className="aw-btn" onClick={tryLogin}>Кіру →</button>
-      </div>
-    </div>
-  );
-}
+function LogItem({log}){return(<div className="li"><span className="lt">{log.t}</span><span style={{flexShrink:0,marginRight:5}}><span className={`bdg ${log.cls}`}>{log.tag}</span></span><span className="lm">{log.msg}</span></div>);}
 
-function LogItem({log}) {
-  return (
-    <div className="li">
-      <span className="lt">{log.t}</span>
-      <span style={{flexShrink:0,marginRight:5}}><span className={`bdg ${log.cls}`}>{log.tag}</span></span>
-      <span className="lm">{log.msg}</span>
-    </div>
-  );
-}
-
-function Dashboard({logs,atkVisible,hideAtk,goPage}) {
-  return (
+function Dashboard({logs,atkVisible,hideAtk,goPage}){
+  return(
     <div className="pg">
-      <div className="pg-tag">Дашборд</div>
-      <div className="pg-h1">Оператор дашборды</div>
-      <div className="pg-sub">SCADA жүйесі мониторингі — нақты уақыт</div>
-      {atkVisible&&(
-        <div className="atk-ban show" style={{display:'flex'}}>
-          <div style={{fontSize:22,flexShrink:0}}>💀</div>
-          <div><div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:3}}>⚠ КИБЕРШАБУЫЛ — NS БҰҒАТТАДЫ!</div>
-          <div style={{fontSize:12,color:'rgba(229,57,53,.8)'}}>10.0.0.99 — параллель сессия. NS тойтарды.</div></div>
-          <button onClick={hideAtk} style={{marginLeft:'auto',padding:'5px 12px',background:'transparent',border:'1px solid rgba(229,57,53,.4)',borderRadius:5,color:'var(--red)',fontSize:11,cursor:'pointer'}}>✕</button>
-        </div>
-      )}
+      <div className="pg-tag">Дашборд</div><div className="pg-h1">Оператор дашборды</div><div className="pg-sub">SCADA жүйесі мониторингі — нақты уақыт</div>
+      {atkVisible&&(<div className="atk-ban show" style={{display:'flex'}}><div style={{fontSize:22,flexShrink:0}}>💀</div><div><div style={{fontSize:14,fontWeight:700,color:'var(--red)',marginBottom:3}}>⚠ КИБЕРШАБУЫЛ — NS БҰҒАТТАДЫ!</div><div style={{fontSize:12,color:'rgba(229,57,53,.8)'}}>10.0.0.99 — параллель сессия. NS тойтарды.</div></div><button onClick={hideAtk} style={{marginLeft:'auto',padding:'5px 12px',background:'transparent',border:'1px solid rgba(229,57,53,.4)',borderRadius:5,color:'var(--red)',fontSize:11,cursor:'pointer'}}>✕</button></div>)}
       <div className="g4 mb">
         <div className="stat"><div className="stat-ic">🛢️</div><div className="stat-lb">Мұнай өндірісі</div><div className="stat-val">125.4</div><div className="stat-unit">мың т/тәу</div><div className="stat-tr tup">↑ +3.2%</div></div>
         <div className="stat"><div className="stat-ic">⚙️</div><div className="stat-lb">Белсенді RTU</div><div className="stat-val" style={{color:'var(--green2)'}}>178/180</div><div className="stat-unit">онлайн</div><div className="stat-tr tok-c">2 техн. қызмет</div></div>
@@ -799,153 +612,64 @@ function Dashboard({logs,atkVisible,hideAtk,goPage}) {
         <div className="stat"><div className="stat-ic">⚠️</div><div className="stat-lb">Ескертулер</div><div className="stat-val" style={{color:'var(--amber)'}}>{atkVisible?3:2}</div><div className="stat-unit">белсенді</div><div className="stat-tr tok-c">RTU-07, B-14</div></div>
       </div>
       <div className="g2">
-        <div className="card">
-          <div className="card-t">📋 Соңғы оқиғалар</div>
-          <div className="log-list">{logs.slice(0,8).map((l,i)=><LogItem key={i} log={l}/>)}</div>
-        </div>
-        <div className="card">
-          <div className="card-t">⚡ Тез іс-әрекеттер</div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            <button onClick={()=>goPage('chat')} style={{padding:'11px 16px',background:'var(--green)',color:'#fff',border:'none',borderRadius:7,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'left',fontFamily:'Golos Text,sans-serif'}}>🔐 NS-KDC чат</button>
-            <button onClick={()=>goPage('scada')} style={{padding:'11px 16px',background:'rgba(21,101,192,.15)',color:'var(--blue3)',border:'1px solid rgba(21,101,192,.3)',borderRadius:7,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'left',fontFamily:'Golos Text,sans-serif'}}>🏭 SCADA датчиктер</button>
-            <button onClick={()=>goPage('pipes')} style={{padding:'11px 16px',background:'transparent',color:'var(--t2)',border:'1px solid var(--border)',borderRadius:7,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'left',fontFamily:'Golos Text,sans-serif'}}>🔩 Құбыр желілері</button>
-          </div>
-        </div>
+        <div className="card"><div className="card-t">📋 Соңғы оқиғалар</div><div className="log-list">{logs.slice(0,8).map((l,i)=><LogItem key={i} log={l}/>)}</div></div>
+        <div className="card"><div className="card-t">⚡ Тез іс-әрекеттер</div><div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <button onClick={()=>goPage('chat')} style={{padding:'11px 16px',background:'var(--green)',color:'#fff',border:'none',borderRadius:7,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'left',fontFamily:'Golos Text,sans-serif'}}>🔐 NS-KDC чат</button>
+          <button onClick={()=>goPage('scada')} style={{padding:'11px 16px',background:'rgba(21,101,192,.15)',color:'var(--blue3)',border:'1px solid rgba(21,101,192,.3)',borderRadius:7,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'left',fontFamily:'Golos Text,sans-serif'}}>🏭 SCADA датчиктер</button>
+          <button onClick={()=>goPage('pipes')} style={{padding:'11px 16px',background:'transparent',color:'var(--t2)',border:'1px solid var(--border)',borderRadius:7,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'left',fontFamily:'Golos Text,sans-serif'}}>🔩 Құбыр желілері</button>
+        </div></div>
       </div>
     </div>
   );
 }
 
-function ScadaPage({sensors}) {
+function ScadaPage({sensors}){
   const sst=s=>s.val>s.max?'err':s.val>s.max*.93?'warn':'ok';
   const scol=st=>({ok:'#43a047',warn:'#f57f17',err:'#e53935'}[st]);
   const sdisp=s=>s.unit==='МПа'?s.val.toFixed(1):Math.round(s.val);
-  return (
-    <div className="pg">
-      <div className="pg-tag">SCADA</div>
-      <div className="pg-h1">SCADA Мониторинг</div>
-      <div className="pg-sub">Датчиктер — 3 секунд сайын жаңарту</div>
-      <div className="g-sensor">
-        {sensors.map((s,i)=>{
-          const st=sst(s),col=scol(st);
-          const pct=Math.min(100,Math.max(0,Math.round((s.val-s.min)/(s.max-s.min)*100)));
-          const bg=`conic-gradient(${col} ${pct*1.8}deg,rgba(255,255,255,.07) ${pct*1.8}deg)`;
-          const cls=`sc-st bdg ${st==='ok'?'bok':st==='warn'?'bwarn':'berr'}`;
-          return (
-            <div key={i} className={`sc${st==='err'?' alarm':''}`}>
-              <div className="sc-title">{s.id} — {s.name}</div>
-              <div className="ring" style={{background:bg}}>
-                <div className="ring-in">
-                  <div className="ring-num" style={{color:col}}>{sdisp(s)}</div>
-                  <div className="ring-unit">{s.unit}</div>
-                </div>
-              </div>
-              <div className="sc-loc">{s.loc}</div>
-              <div className={cls}>{st==='ok'?'✓ Норма':st==='warn'?'⚠ Назар':'✗ АВАРИЯ'}</div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return(<div className="pg"><div className="pg-tag">SCADA</div><div className="pg-h1">SCADA Мониторинг</div><div className="pg-sub">Датчиктер — 3 секунд сайын жаңарту</div><div className="g-sensor">{sensors.map((s,i)=>{const st=sst(s),col=scol(st),pct=Math.min(100,Math.max(0,Math.round((s.val-s.min)/(s.max-s.min)*100))),bg=`conic-gradient(${col} ${pct*1.8}deg,rgba(255,255,255,.07) ${pct*1.8}deg)`,cls=`sc-st bdg ${st==='ok'?'bok':st==='warn'?'bwarn':'berr'}`;return(<div key={i} className={`sc${st==='err'?' alarm':''}`}><div className="sc-title">{s.id} — {s.name}</div><div className="ring" style={{background:bg}}><div className="ring-in"><div className="ring-num" style={{color:col}}>{sdisp(s)}</div><div className="ring-unit">{s.unit}</div></div></div><div className="sc-loc">{s.loc}</div><div className={cls}>{st==='ok'?'✓ Норма':st==='warn'?'⚠ Назар':'✗ АВАРИЯ'}</div></div>);})}</div></div>);
 }
 
-function PipesPage() {
-  const SB={ok:'bok',warn:'bwarn',err:'berr'};
-  const SL={ok:'Норма',warn:'Ескерту',err:'Авария'};
-  return (
-    <div className="pg">
-      <div className="pg-tag">Құбырлар</div>
-      <div className="pg-h1">Тасымалдау желілері</div>
-      <div className="pg-sub">Барлық технологиялық желілер</div>
-      <div className="g2 mb">
-        {PIPES_DATA.map((p,i)=>(
-          <div key={i} className="pipe-card">
-            <div className="pipe-hd">
-              <div><div className="pipe-name">{p.name}</div><div className="pipe-loc">{p.loc}</div></div>
-              <span className={`bdg ${SB[p.s]}`}>{SL[p.s]}</span>
-            </div>
-            <div className="pipe-bar"><div className={`pipe-fill ${p.c}`} style={{width:`${p.pct}%`}}></div></div>
-            <div className="pipe-stats">
-              <div className="pipe-stat"><strong>{p.flow}</strong>Ағын</div>
-              <div className="pipe-stat"><strong>{p.len}</strong>Ұзындық</div>
-              <div className="pipe-stat"><strong>{p.pct}%</strong>Жүктеме</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function PipesPage(){
+  const SB={ok:'bok',warn:'bwarn',err:'berr'},SL={ok:'Норма',warn:'Ескерту',err:'Авария'};
+  return(<div className="pg"><div className="pg-tag">Құбырлар</div><div className="pg-h1">Тасымалдау желілері</div><div className="pg-sub">Барлық технологиялық желілер</div><div className="g2 mb">{PIPES_DATA.map((p,i)=>(<div key={i} className="pipe-card"><div className="pipe-hd"><div><div className="pipe-name">{p.name}</div><div className="pipe-loc">{p.loc}</div></div><span className={`bdg ${SB[p.s]}`}>{SL[p.s]}</span></div><div className="pipe-bar"><div className={`pipe-fill ${p.c}`} style={{width:`${p.pct}%`}}></div></div><div className="pipe-stats"><div className="pipe-stat"><strong>{p.flow}</strong>Ағын</div><div className="pipe-stat"><strong>{p.len}</strong>Ұзындық</div><div className="pipe-stat"><strong>{p.pct}%</strong>Жүктеме</div></div></div>))}</div></div>);
 }
 
-function DevicesPage() {
-  const SD={ok:'sdg',warn:'sda',err:'sdr'};
-  const SB={ok:'bok',warn:'bwarn',err:'berr'};
-  const SL={ok:'Онлайн',warn:'Ескерту',err:'Қауіп'};
-  return (
-    <div className="pg">
-      <div className="pg-tag">IP Құрылғылар</div>
-      <div className="pg-h1">Желі құрылғылары</div>
-      <div className="pg-sub">SCADA желісіндегі RTU, PLC, серверлер</div>
-      <div className="ip-grid mb">
-        {DEVS_DATA.map((d,i)=>(
-          <div key={i} className="ip-card">
-            <div className="ip-name">
-              <span className={`sdot ${SD[d.s]}`} style={{marginRight:5}}></span>
-              {d.name}<span className={`bdg ${SB[d.s]}`} style={{marginLeft:6,float:'right'}}>{SL[d.s]}</span>
-            </div>
-            <div className="ip-addr">{d.ip}</div>
-            <div className="ip-info">Тип: {d.type}<br/>Протокол: <span style={{color:'var(--blue3)'}}>{d.proto}</span><br/><span style={{fontFamily:'monospace',fontSize:9,color:'var(--t3)'}}>MAC: {d.mac}</span></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function DevicesPage(){
+  const SD={ok:'sdg',warn:'sda',err:'sdr'},SB={ok:'bok',warn:'bwarn',err:'berr'},SL={ok:'Онлайн',warn:'Ескерту',err:'Қауіп'};
+  return(<div className="pg"><div className="pg-tag">IP Құрылғылар</div><div className="pg-h1">Желі құрылғылары</div><div className="pg-sub">SCADA желісіндегі RTU, PLC, серверлер</div><div className="ip-grid mb">{DEVS_DATA.map((d,i)=>(<div key={i} className="ip-card"><div className="ip-name"><span className={`sdot ${SD[d.s]}`} style={{marginRight:5}}></span>{d.name}<span className={`bdg ${SB[d.s]}`} style={{marginLeft:6,float:'right'}}>{SL[d.s]}</span></div><div className="ip-addr">{d.ip}</div><div className="ip-info">Тип: {d.type}<br/>Протокол: <span style={{color:'var(--blue3)'}}>{d.proto}</span><br/><span style={{fontFamily:'monospace',fontSize:9,color:'var(--t3)'}}>MAC: {d.mac}</span></div></div>))}</div></div>);
 }
 
-function LogsPage({logs}) {
-  return (
-    <div className="pg">
-      <div className="pg-tag">Журнал</div>
-      <div className="pg-h1">Оқиғалар журналы</div>
-      <div className="pg-sub">Барлық жүйелік оқиғалар</div>
-      <div className="card">
-        <div className="card-t">📋 Оқиғалар</div>
-        <div className="log-list">{logs.slice(0,60).map((l,i)=><LogItem key={i} log={l}/>)}</div>
-      </div>
-    </div>
-  );
+function LogsPage({logs}){
+  return(<div className="pg"><div className="pg-tag">Журнал</div><div className="pg-h1">Оқиғалар журналы</div><div className="pg-sub">Барлық жүйелік оқиғалар</div><div className="card"><div className="card-t">📋 Оқиғалар</div><div className="log-list">{logs.slice(0,60).map((l,i)=><LogItem key={i} log={l}/>)}</div></div></div>);
 }
 
 // ─── Main Operator App ────────────────────────────────────────────────────────
 export default function Operator() {
-  const [authed, setAuthed] = useState(null);
-  const [username, setUsername] = useState('operator');
-  const [page, setPage] = useState('dashboard');
-  const [sbOpen, setSbOpen] = useState(true);
-  const [clock, setClock] = useState(ts());
-  const [logs, setLogs] = useState([]);
-  const [sensors, setSensors] = useState(INIT_SENSORS.map(s=>({...s})));
-  const [atkVisible, setAtkVisible] = useState(false);
-  const [unread, setUnread] = useState(0);
-  const [toast, setToast] = useState({msg:'',type:'tok',show:false});
-  const navigate = useNavigate();
+  const [authed,setAuthed]=useState(null);
+  const [username,setUsername]=useState('operator');
+  const [page,setPage]=useState('dashboard');
+  const [sbOpen,setSbOpen]=useState(true);
+  const [clock,setClock]=useState(ts());
+  const [logs,setLogs]=useState([]);
+  const [sensors,setSensors]=useState(INIT_SENSORS.map(s=>({...s})));
+  const [atkVisible,setAtkVisible]=useState(false);
+  const [unread,setUnread]=useState(0);
+  const [toast,setToast]=useState({msg:'',type:'tok',show:false});
+  const navigate=useNavigate();
 
   useEffect(()=>{
     if(!document.getElementById('qmg-styles')){
       const style=document.createElement('style');
-      style.id='qmg-styles'; style.textContent=GLOBAL_CSS;
-      document.head.appendChild(style);
+      style.id='qmg-styles';style.textContent=GLOBAL_CSS;document.head.appendChild(style);
     }
-    try {
-      const r=localStorage.getItem('qmg_role');
-      const u=localStorage.getItem('qmg_user');
-      if(r==='operator'&&u){ setUsername(u); setAuthed(true); }
-      else setAuthed(false);
-    } catch { setAuthed(false); }
+    try{
+      const r=localStorage.getItem('qmg_role'),u=localStorage.getItem('qmg_user');
+      if(r==='operator'&&u){setUsername(u);setAuthed(true);}else setAuthed(false);
+    }catch{setAuthed(false);}
   },[]);
 
-  useEffect(()=>{ const t=setInterval(()=>setClock(ts()),1000); return ()=>clearInterval(t); },[]);
+  useEffect(()=>{const t=setInterval(()=>setClock(ts()),1000);return()=>clearInterval(t);},[]);
 
   const showToast=useCallback((msg,type='tok')=>{
     setToast({msg,type,show:true});
@@ -965,48 +689,39 @@ export default function Operator() {
       {t:ts(),cls:'bwarn',tag:'[RTU-07]',msg:'B-14 секция — қысым нормадан жоғары: 92 bar'},
       {t:ts(),cls:'binfo',tag:'[KDC]',msg:'Сессионный ключ Ks сгенерирован · TTL=90s'},
     ]);
-    const t1=setTimeout(()=>{ addLog('warn','[RTU-07]','Қысым критикалық'); showToast('⚠ RTU-07 авария!','twarn'); },10000);
-    const t2=setTimeout(()=>{ addLog('err','[ШАБУЫЛ]','10.0.0.99 бұғатталды'); showToast('💀 Шабуыл бұғатталды!','terr'); setAtkVisible(true); },22000);
-    const t3=setTimeout(()=>{ addLog('ok','[NS]','KDC кілт жаңартты'); setAtkVisible(false); },38000);
-    return ()=>{ clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t1=setTimeout(()=>{addLog('warn','[RTU-07]','Қысым критикалық');showToast('⚠ RTU-07 авария!','twarn');},10000);
+    const t2=setTimeout(()=>{addLog('err','[ШАБУЫЛ]','10.0.0.99 бұғатталды');showToast('💀 Шабуыл бұғатталды!','terr');setAtkVisible(true);},22000);
+    const t3=setTimeout(()=>{addLog('ok','[NS]','KDC кілт жаңартты');setAtkVisible(false);},38000);
+    return()=>{clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);};
   },[authed]);
 
-  // Sensor updates
   useEffect(()=>{
     if(!authed) return;
-    const t=setInterval(()=>{
-      setSensors(prev=>prev.map(s=>{
-        let val=parseFloat((s.val+(Math.random()-.5)*2*s.dr).toFixed(s.unit==='МПа'?1:0));
-        val=Math.max(s.base*.8,Math.min(s.base*1.2,val));
-        return {...s,val};
-      }));
-    },3000);
-    return ()=>clearInterval(t);
+    const t=setInterval(()=>{setSensors(prev=>prev.map(s=>{let val=parseFloat((s.val+(Math.random()-.5)*2*s.dr).toFixed(s.unit==='МПа'?1:0));val=Math.max(s.base*.8,Math.min(s.base*1.2,val));return{...s,val};}));},3000);
+    return()=>clearInterval(t);
   },[authed]);
 
-  // Listen for admin messages
+  // Poll for new admin messages (unread badge)
   useEffect(()=>{
     if(!authed) return;
-    let bc;
-    try {
-      bc=new BroadcastChannel('qmg_chat_ns');
-      bc.onmessage=(e)=>{
-        if(e.data?.type==='new_msg'&&e.data.msg.from!=='operator'){
-          if(page!=='chat') setUnread(p=>p+1);
-          showToast('💬 Зашифрованное сообщение от администратора!','tok');
-        }
-      };
-    } catch {}
-    return ()=>{ try{bc?.close();}catch{} };
+    let lastTs=Date.now();
+    const poll=async()=>{
+      const newMsgs=await apiFetchMsgs(lastTs);
+      const fromAdmin=newMsgs.filter(m=>m.from!=='operator');
+      if(fromAdmin.length&&page!=='chat'){
+        setUnread(p=>p+fromAdmin.length);
+        showToast('💬 Зашифрованное сообщение от администратора!','tok');
+        lastTs=Date.now();
+      }
+    };
+    const t=setInterval(poll,3000);
+    return()=>clearInterval(t);
   },[authed,page,showToast]);
 
-  const goPage=(p)=>{ setPage(p); if(p==='chat') setUnread(0); };
-  const doLogout=()=>{
-    try{localStorage.removeItem('qmg_user');localStorage.removeItem('qmg_role');}catch{}
-    navigate('/');
-  };
+  const goPage=(p)=>{setPage(p);if(p==='chat')setUnread(0);};
+  const doLogout=()=>{try{localStorage.removeItem('qmg_user');localStorage.removeItem('qmg_role');}catch{}navigate('/');};
 
-  useEffect(()=>{ if(authed===false) navigate('/'); },[authed,navigate]);
+  useEffect(()=>{if(authed===false)navigate('/');},[authed,navigate]);
   if(authed===null) return null;
   if(authed===false) return null;
 
@@ -1019,42 +734,27 @@ export default function Operator() {
     {id:'logs',icon:'📋',label:'Журнал'},
   ];
 
-  return (
+  return(
     <div className="qmg-root">
       <div className="topbar">
         <div className="tb-l">
-          <button className={`brgr${sbOpen?'':' open'}`} onClick={()=>setSbOpen(p=>!p)}>
-            <span/><span/><span/>
-          </button>
-          <div className="tlogo" onClick={doLogout}>
-            <div className="tlogo-ic">⛽</div>
-            <div><div className="tlogo-n">QazMunaiGaz Pro</div><div className="tlogo-s">Оператор панелі</div></div>
-          </div>
+          <button className={`brgr${sbOpen?'':' open'}`} onClick={()=>setSbOpen(p=>!p)}><span/><span/><span/></button>
+          <div className="tlogo" onClick={doLogout}><div className="tlogo-ic">⛽</div><div><div className="tlogo-n">QazMunaiGaz Pro</div><div className="tlogo-s">Оператор панелі</div></div></div>
           <div className="rpill">🛡️ Оператор · L2</div>
         </div>
         <div className="tb-r">
           <div className="ns-ind"><span className="nd"></span>NS+KDC</div>
           <div className="tclock">{clock}</div>
-          <div className="tusr">
-            <div className="tav">{username[0]?.toUpperCase()}</div>
-            <div><div className="tun">{username}</div><div className="tip">192.168.0.22</div></div>
-          </div>
+          <div className="tusr"><div className="tav">{username[0]?.toUpperCase()}</div><div><div className="tun">{username}</div><div className="tip">192.168.0.22</div></div></div>
           <button className="tout" onClick={doLogout}>Шығу ↩</button>
         </div>
       </div>
-
       <div className="body-wrap">
         <div className={`sidebar${sbOpen?'':' collapsed'}`}>
           <div className="sb-sec">Негізгі</div>
-          {NAV.map(n=>(
-            <button key={n.id} className={`sbi${page===n.id?' active':''}`} onClick={()=>goPage(n.id)}>
-              <span className="sbi-ic">{n.icon}</span>{n.label}
-              {n.badge>0&&<span className="sbi-badge">{n.badge}</span>}
-            </button>
-          ))}
+          {NAV.map(n=>(<button key={n.id} className={`sbi${page===n.id?' active':''}`} onClick={()=>goPage(n.id)}><span className="sbi-ic">{n.icon}</span>{n.label}{n.badge>0&&<span className="sbi-badge">{n.badge}</span>}</button>))}
           <div className="sb-div"/>
         </div>
-
         <div className="content">
           {page==='dashboard'&&<Dashboard logs={logs} atkVisible={atkVisible} hideAtk={()=>setAtkVisible(false)} goPage={goPage}/>}
           {page==='scada'&&<ScadaPage sensors={sensors}/>}
@@ -1064,7 +764,6 @@ export default function Operator() {
           {page==='logs'&&<LogsPage logs={logs}/>}
         </div>
       </div>
-
       <div className={`toast ${toast.type}${toast.show?' show':''}`}>{toast.msg}</div>
     </div>
   );

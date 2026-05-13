@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FIREBASE CONFIG — замените на свой проект с https://console.firebase.google.com
-// Создайте Realtime Database, правила: { "rules": { ".read": true, ".write": true } }
-// ─────────────────────────────────────────────────────────────────────────────
-const FB_URL = "https://YOUR_PROJECT-default-rtdb.firebaseio.com";
-// Если не хотите Firebase — будет работать только BroadcastChannel (один браузер)
+const BACKEND = "https://qmg-backend.onrender.com";
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 const ADMIN_CSS = `
@@ -31,7 +26,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
   background-image:linear-gradient(rgba(229,57,53,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(229,57,53,.012) 1px,transparent 1px);
   background-size:40px 40px;pointer-events:none}
 
-/* Topbar */
 .adm-topbar{height:54px;min-height:54px;display:flex;align-items:center;justify-content:space-between;
   padding:0 22px;background:var(--navy2);border-bottom:2px solid var(--red);flex-shrink:0;position:relative;z-index:10}
 .adm-tb-l{display:flex;align-items:center;gap:14px}
@@ -57,7 +51,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .adm-tout{padding:6px 14px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--t2);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all .15s}
 .adm-tout:hover{border-color:var(--red);color:var(--red)}
 
-/* Layout */
 .adm-body{flex:1;display:flex;overflow:hidden;position:relative;z-index:1}
 .adm-sidebar{width:230px;min-width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .3s,min-width .3s;flex-shrink:0}
 .adm-sidebar.collapsed{width:0;min-width:0}
@@ -69,7 +62,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .adm-sbi-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px}
 .adm-sb-div{height:1px;background:var(--border);margin:8px 14px}
 
-/* Content */
 .adm-content{flex:1;overflow-y:auto;background:var(--bg)}
 .adm-content::-webkit-scrollbar{width:4px}
 .adm-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -79,16 +71,13 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .adm-h1{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#fff;margin-bottom:5px}
 .adm-sub{font-size:13px;color:var(--t2);margin-bottom:24px}
 
-/* Grids */
 .adm-g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .adm-g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .adm-mb{margin-bottom:16px}
 
-/* Card */
 .adm-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px}
 .adm-card-t{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
 
-/* Stat */
 .adm-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;transition:border-color .2s}
 .adm-stat:hover{border-color:rgba(229,57,53,.2)}
 .adm-stat-ic{font-size:24px;margin-bottom:9px}
@@ -98,7 +87,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .adm-stat-tr{font-size:11px;margin-top:7px}
 .adm-tup{color:var(--green2)} .adm-tok{color:var(--blue3)}
 
-/* Badge */
 .adm-bdg{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
 .adm-bok{background:var(--green3);color:var(--green2)}
 .adm-bwarn{background:var(--amber2);color:var(--amber)}
@@ -106,13 +94,11 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .adm-binfo{background:rgba(21,101,192,.12);color:var(--blue3)}
 .adm-bgold{background:var(--gold3);color:var(--gold2)}
 
-/* Table */
 .adm-tbl{width:100%;border-collapse:collapse;font-size:12px}
 .adm-tbl th{text-align:left;padding:8px 12px;color:var(--t3);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--border)}
 .adm-tbl td{padding:9px 12px;border-bottom:1px solid var(--border2);color:var(--t2)}
 .adm-tbl td:first-child{color:var(--text);font-weight:500}
 
-/* Employee */
 .adm-emp-row{display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;transition:border-color .15s}
 .adm-emp-row:hover{border-color:rgba(200,150,12,.3)}
 .adm-emp-av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--navy3),var(--red));display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0}
@@ -126,59 +112,40 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .adm-dl-btn-o{background:transparent;border:1px solid var(--border);color:var(--t2)}
 .adm-dl-btn-o:hover{border-color:var(--t2);color:var(--text)}
 
-/* ═══════════════════════════════════════════════════════
-   NS-KDC CHAT STYLES
-═══════════════════════════════════════════════════════ */
+/* NS Chat */
 .ns-chat-wrap{display:flex;flex-direction:column;height:460px}
 .ns-chat-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 0}
 .ns-chat-msgs::-webkit-scrollbar{width:3px}
 .ns-chat-msgs::-webkit-scrollbar-thumb{background:var(--t4)}
-
 .ns-msg-row{display:flex;flex-direction:column}
 .ns-msg-row.me{align-items:flex-end}
 .ns-msg-row.them{align-items:flex-start}
-
-/* Locked bubble */
 .ns-bubble{max-width:80%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;position:relative;cursor:pointer;transition:border-color .2s}
 .ns-bubble.me{background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.2);border-bottom-right-radius:3px}
 .ns-bubble.them{background:var(--bg3);border:1px solid var(--border);border-bottom-left-radius:3px}
 .ns-bubble:hover{border-color:rgba(200,150,12,.4)!important}
-
 .ns-cipher-preview{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);word-break:break-all;line-height:1.6;margin-bottom:6px}
 .ns-lock-row{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gold2);margin-top:4px}
-.ns-lock-row span{animation:adm-bp 2s infinite}
-
 .ns-meta{font-size:10px;color:var(--t3);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ns-ttl-pill{padding:1px 7px;border-radius:8px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace}
 .ns-ttl-ok{background:var(--green3);color:var(--green2)}
 .ns-ttl-warn{background:var(--amber2);color:var(--amber)}
 .ns-ttl-dead{background:var(--red2);color:var(--red)}
-
 .ns-inp-row{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--border);margin-top:8px}
 .ns-chat-inp{flex:1;padding:10px 13px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;font-family:'Golos Text',sans-serif;outline:none;transition:border-color .2s}
 .ns-chat-inp:focus{border-color:rgba(200,150,12,.4)}
 .ns-chat-inp::placeholder{color:var(--t3)}
 .ns-send-btn{padding:10px 18px;background:var(--red);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Golos Text',sans-serif;transition:background .2s;display:flex;align-items:center;gap:6px}
 .ns-send-btn:hover{background:#c62828}
-
-/* NS Legend */
 .ns-legend-box{padding:10px 14px;background:rgba(200,150,12,.06);border:1px solid rgba(200,150,12,.15);border-radius:7px;font-size:11px;color:rgba(200,150,12,.8);line-height:1.8;margin-bottom:10px}
 .ns-legend-box strong{color:var(--gold2)}
-
-/* TTL bar */
-.ns-ttl-bar-wrap{display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:8px}
-.ns-ttl-bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
-.ns-ttl-fill{height:100%;border-radius:2px;transition:width 1s linear,background .5s}
-.ns-ttl-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);flex-shrink:0;min-width:42px;text-align:right}
-
-/* Log strip */
 .ns-log-strip{display:flex;flex-direction:column;gap:3px;max-height:120px;overflow-y:auto;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .ns-log-item{display:flex;gap:6px;font-size:10px;align-items:flex-start}
 .ns-log-t{font-family:'JetBrains Mono',monospace;color:var(--t3);flex-shrink:0}
 .ns-log-tag{padding:0px 5px;border-radius:3px;font-size:9px;font-weight:700;flex-shrink:0}
 .ns-log-m{color:var(--t2);line-height:1.5}
 
-/* ── NS Modal ── */
+/* NS Modal */
 .ns-modal-overlay{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);padding:16px}
 .ns-modal{background:var(--bg2);border:1px solid rgba(200,150,12,.3);border-radius:14px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.8)}
 .ns-modal::-webkit-scrollbar{width:3px}
@@ -187,7 +154,6 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .ns-modal-title{font-size:14px;font-weight:700;color:var(--gold2);font-family:'JetBrains Mono',monospace}
 .ns-modal-close{background:none;border:none;cursor:pointer;color:var(--t2);font-size:20px;padding:0 4px;line-height:1}
 .ns-modal-body{padding:18px 20px}
-
 .ns-step{display:flex;gap:12px;margin-bottom:12px;padding:14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);transition:border-color .3s}
 .ns-step.active{border-color:rgba(200,150,12,.4);background:rgba(200,150,12,.04)}
 .ns-step.done{border-color:rgba(67,160,71,.3);background:rgba(67,160,71,.04)}
@@ -202,9 +168,7 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .ns-step-formula .hi{color:var(--gold2)}
 .ns-step-formula .hi2{color:var(--green2)}
 .ns-step-formula .hi3{color:var(--blue3)}
-
 .ns-inp-group{display:flex;flex-direction:column;gap:5px;margin-top:6px}
-.ns-inp-label{font-size:11px;color:var(--t2)}
 .ns-inp-hint{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace}
 .ns-step-inp-row{display:flex;gap:7px;align-items:center}
 .ns-step-inp{flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s}
@@ -212,32 +176,24 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .ns-step-inp.err{border-color:var(--red)!important}
 .ns-step-btn{padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Golos Text',sans-serif;border:none;background:var(--gold);color:#000;transition:all .15s;white-space:nowrap}
 .ns-step-btn:hover{background:var(--gold2)}
-.ns-step-btn:disabled{opacity:.4;cursor:not-allowed}
 .ns-err-msg{font-size:10px;color:var(--red);margin-top:3px}
-
 .ns-success-box{padding:16px;background:var(--green3);border:1px solid rgba(67,160,71,.35);border-radius:8px;margin-top:12px;text-align:center}
 .ns-success-title{font-size:13px;font-weight:700;color:var(--green2);margin-bottom:6px}
 .ns-revealed{font-size:18px;font-weight:600;color:#fff;padding:12px 16px;background:rgba(0,0,0,.3);border-radius:6px;margin-top:6px;line-height:1.5;word-break:break-word}
-
 .ns-expired-box{padding:14px;background:var(--red2);border:1px solid rgba(229,57,53,.4);border-radius:8px;text-align:center;color:var(--red);font-size:13px}
-
-/* Log strip in modal */
 .ns-modal-log{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 .ns-modal-log-title{font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 
-/* Log */
 .adm-log-list{display:flex;flex-direction:column;gap:4px}
 .adm-li{display:flex;gap:9px;padding:8px 11px;border-radius:6px;background:var(--bg3);border:1px solid var(--border2);font-size:11px}
 .adm-lt{font-family:'JetBrains Mono',monospace;color:var(--t3);flex-shrink:0;font-size:10px;padding-top:1px}
 .adm-lm{color:var(--t2);flex:1;line-height:1.5}
 
-/* Report */
 .adm-rep-box{background:linear-gradient(135deg,var(--bg3),var(--navy3));border:1px solid rgba(200,150,12,.25);border-radius:10px;padding:22px;margin-bottom:16px}
 .adm-rep-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .adm-rep-title{font-family:'Playfair Display',serif;font-size:18px;color:#fff;margin-bottom:4px}
 .adm-rep-period{font-size:12px;color:var(--gold2);font-family:'JetBrains Mono',monospace}
 
-/* Camera */
 .adm-cam-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .adm-cam-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s}
 .adm-cam-card:hover{border-color:rgba(200,150,12,.3)}
@@ -255,14 +211,12 @@ body,html{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-s
 .adm-cam-btn:hover{border-color:var(--gold);color:var(--gold2)}
 .adm-cam-btn.primary{background:var(--gold3);color:var(--gold2);border-color:rgba(200,150,12,.3)}
 
-/* Toast */
 .adm-toast{position:fixed;bottom:22px;right:22px;z-index:8000;padding:12px 18px;border-radius:9px;font-size:13px;background:var(--bg2);border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,.4);max-width:320px;transition:all .3s;opacity:0;transform:translateY(18px);pointer-events:none}
 .adm-toast.show{opacity:1;transform:translateY(0)}
 .adm-toast.tok{border-color:rgba(67,160,71,.4);background:var(--green3)}
 .adm-toast.terr{border-color:rgba(229,57,53,.4);background:var(--red2)}
 .adm-toast.twarn{border-color:rgba(245,127,23,.4);background:var(--amber2)}
 
-/* Auth wall */
 .adm-auth{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy),#1a0808)}
 .adm-aw{background:var(--bg2);border:1px solid rgba(229,57,53,.25);border-radius:16px;width:420px;padding:36px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.7)}
 .adm-aw h2{font-family:'Playfair Display',serif;font-size:22px;color:#fff;margin:16px 0 8px}
@@ -320,14 +274,12 @@ const CONTRACTS = [
   'QMG-010 · BG Group · Газ жобасы · ₸2.5 млрд',
 ];
 
-// ─── NS-KDC Crypto Helpers ────────────────────────────────────────────────────
-const SESSION_TTL = 90; // seconds
-
+// ─── NS-KDC Helpers ───────────────────────────────────────────────────────────
+const SESSION_TTL = 90;
 const pp = n => String(n).padStart(2,'0');
 const ts = () => { const d = new Date(); return `${pp(d.getHours())}:${pp(d.getMinutes())}:${pp(d.getSeconds())}`; };
 const rHex = bytes => Array.from({length:bytes},()=>Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join('').toUpperCase();
 
-/** XOR-stream cipher with 16-byte key (AES-256 simulation) */
 function nsEncrypt(plaintext, Ks) {
   const bytes = [...plaintext].map(c => c.charCodeAt(0));
   const keyBytes = Ks.match(/.{1,2}/g).map(h => parseInt(h,16));
@@ -348,74 +300,63 @@ function nsDecrypt(cipher, Ks) {
   } catch { return null; }
 }
 
-/** Generate a full NS-KDC ticket for a message */
 function generateNSTicket(from, to, Ks) {
-  const Na = rHex(4);   // nonce A (initiator)
-  const Nb = rHex(4);   // nonce B (responder)
+  const Na = rHex(4);
+  const Nb = rHex(4);
   const timestamp = Date.now();
   return {
-    Na, Nb, Ks,
-    from, to, timestamp,
-    // The 4 protocol steps displayed to user
+    Na, Nb, Ks, from, to, timestamp,
     steps: [
       {
-        label: `${from} → KDC`,
-        formula: `{ ID_${from}, ID_${to}, Na=0x${Na} } K_${from}`,
-        desc: `Инициатор запрашивает сессионный ключ у KDC. Nonce Na защищает от replay-атак.`,
-        field: 'Na', expected: Na, hint: `Na = 0x${Na}`, placeholder: `0x${Na.substr(0,2)}__`
+        label:`${from} → KDC`,
+        formula:`{ ID_${from}, ID_${to}, Na=0x${Na} } K_${from}`,
+        desc:`Инициатор запрашивает сессионный ключ у KDC. Nonce Na защищает от replay-атак.`,
+        field:'Na', expected:Na, hint:`Na = 0x${Na}`, placeholder:`0x${Na.substr(0,2)}__`
       },
       {
-        label: `KDC → ${from}`,
-        formula: `{ Ks=0x${Ks.substr(0,8)}…, ID_${to}, Na=0x${Na}, { Ks, ID_${from} }K_${to} } K_${from}`,
-        desc: `KDC выдаёт сессионный ключ Ks и тикет для получателя, всё зашифровано.`,
-        field: 'Ks', expected: Ks.substr(0,8), hint: `Ks начинается с ${Ks.substr(0,4)}`, placeholder: `${Ks.substr(0,4)}____`
+        label:`KDC → ${from}`,
+        formula:`{ Ks=0x${Ks.substr(0,8)}…, ID_${to}, Na=0x${Na}, { Ks, ID_${from} }K_${to} } K_${from}`,
+        desc:`KDC выдаёт сессионный ключ Ks и тикет для получателя, всё зашифровано.`,
+        field:'Ks', expected:Ks.substr(0,8), hint:`Ks начинается с ${Ks.substr(0,4)}`, placeholder:`${Ks.substr(0,4)}____`
       },
       {
-        label: `${from} → ${to}`,
-        formula: `{ Ks, ID_${from} }K_${to}  ||  { msg }Ks`,
-        desc: `Отправитель передаёт тикет и зашифрованное сообщение получателю.`,
-        field: 'ticket',
-        ticketStr: `{ Ks=0x${Ks.substr(0,8)}…, ID_${from} }K_${to}`,
-        hint: `Подтвердите получение тикета`, placeholder: `ok`
+        label:`${from} → ${to}`,
+        formula:`{ Ks, ID_${from} }K_${to}  ||  { msg }Ks`,
+        desc:`Отправитель передаёт тикет и зашифрованное сообщение получателю.`,
+        field:'ticket',
+        ticketStr:`{ Ks=0x${Ks.substr(0,8)}…, ID_${from} }K_${to}`,
+        hint:`Подтвердите получение тикета`, placeholder:`ok`
       },
       {
-        label: `${to} → ${from}`,
-        formula: `{ Nb=0x${Nb} }Ks  →  { Nb−1 }Ks  ✓  Взаимная аутентификация`,
-        desc: `Получатель доказывает знание Ks через Nb. Взаимная аутентификация завершена.`,
-        field: 'Nb', expected: Nb, hint: `Nb = 0x${Nb}`, placeholder: `0x${Nb.substr(0,2)}__`
+        label:`${to} → ${from}`,
+        formula:`{ Nb=0x${Nb} }Ks  →  { Nb−1 }Ks  ✓  Взаимная аутентификация`,
+        desc:`Получатель доказывает знание Ks через Nb. Взаимная аутентификация завершена.`,
+        field:'Nb', expected:Nb, hint:`Nb = 0x${Nb}`, placeholder:`0x${Nb.substr(0,2)}__`
       }
     ]
   };
 }
 
-// ─── Firebase Helpers ─────────────────────────────────────────────────────────
-const FB_MSGS_PATH = `${FB_URL}/qmg_chat.json`;
-
-async function fbPush(msg) {
-  if (!FB_URL || FB_URL.includes('YOUR_PROJECT')) return false;
+// ─── Backend Chat API ─────────────────────────────────────────────────────────
+async function apiSendMsg(msg) {
   try {
-    const res = await fetch(`${FB_URL}/qmg_chat/${msg.id}.json`, {
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(msg)
+    const res = await fetch(`${BACKEND}/chat/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(msg),
     });
     return res.ok;
   } catch { return false; }
 }
 
-async function fbFetch(since=0) {
-  if (!FB_URL || FB_URL.includes('YOUR_PROJECT')) return [];
+async function apiFetchMsgs(since = 0) {
   try {
-    const res = await fetch(`${FB_URL}/qmg_chat.json`);
+    const res = await fetch(`${BACKEND}/chat/get?since=${since}`);
     if (!res.ok) return [];
     const data = await res.json();
-    if (!data) return [];
-    return Object.values(data).filter(m => m && m.timestamp > since).sort((a,b)=>a.timestamp-b.timestamp);
+    return data.messages || [];
   } catch { return []; }
 }
-
-// ─── Local fallback storage ────────────────────────────────────────────────────
-function loadLocalMsgs() { try { return JSON.parse(localStorage.getItem('qmg_msgs_ns')||'[]'); } catch { return []; } }
-function saveLocalMsgs(msgs) { try { localStorage.setItem('qmg_msgs_ns', JSON.stringify(msgs.slice(-80))); } catch {} }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function dlTxt(content, filename) {
@@ -424,21 +365,18 @@ function dlTxt(content, filename) {
   a.download = filename; a.click(); URL.revokeObjectURL(a.href);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// NS MODAL — 4-step protocol to decrypt a message
-// ═══════════════════════════════════════════════════════════════════════════════
+// ─── NS Modal ─────────────────────────────────────────────────────────────────
 function NSModal({ msg, onClose, addLog }) {
-  const [step, setStep] = useState(0); // 0–3 = current step, 4 = success
+  const [step, setStep] = useState(0);
   const [inputs, setInputs] = useState(['','','','']);
   const [errors, setErrors] = useState(['','','','']);
   const [modalLogs, setModalLogs] = useState([]);
   const [decrypted, setDecrypted] = useState('');
 
   const expired = (Date.now() - msg.timestamp) / 1000 > SESSION_TTL;
+  const ticket = msg.ticket;
 
-  const addMLog = (type, text) => {
-    setModalLogs(p => [{t:ts(),type,text},...p].slice(0,8));
-  };
+  const addMLog = (type, text) => setModalLogs(p => [{t:ts(),type,text},...p].slice(0,8));
 
   useEffect(() => {
     addMLog('info', `NS сессия открыта — msg #${msg.id.substr(-6)}`);
@@ -446,48 +384,43 @@ function NSModal({ msg, onClose, addLog }) {
     addMLog('info', `Timestamp: ${new Date(msg.timestamp).toLocaleTimeString()}`);
   }, []);
 
-  const ticket = msg.ticket;
-
   const verify = (stepIdx, val) => {
     const s = ticket.steps[stepIdx];
     const clean = val.trim().replace(/^0x/i,'').toUpperCase();
-
-    if (stepIdx === 0) { // Na
+    if (stepIdx === 0) {
       if (clean === s.expected.toUpperCase() || (clean.length >= 4 && s.expected.toUpperCase().startsWith(clean))) {
-        addMLog('ok', `✓ Na верифицирован (0x${s.expected}) — KDC запрос принят`);
+        addMLog('ok', `✓ Na верифицирован (0x${s.expected})`);
         addLog('ok','[NS-STEP1]',`Na верифицирован → admin→KDC ✓`);
         return true;
       }
-      addMLog('err', `✗ Неверный Na. Ожидалось 0x${s.expected}`);
-      addLog('err','[NS-STEP1]','Неверный Na — попытка отклонена');
+      addMLog('err', `✗ Неверный Na`); addLog('err','[NS-STEP1]','Неверный Na');
       return false;
     }
-    if (stepIdx === 1) { // Ks prefix
+    if (stepIdx === 1) {
       if (clean.length >= 4 && s.expected.toUpperCase().startsWith(clean)) {
-        addMLog('ok', `✓ Ks префикс верифицирован — KDC выдал сессионный ключ`);
-        addLog('ok','[NS-STEP2]',`Ks верифицирован → KDC→admin ✓`);
+        addMLog('ok', `✓ Ks верифицирован`);
+        addLog('ok','[NS-STEP2]',`Ks верифицирован ✓`);
         return true;
       }
-      addMLog('err', `✗ Неверный Ks. Подсказка: ${s.hint}`);
-      addLog('err','[NS-STEP2]','Неверный Ks — KDC отклонил');
+      addMLog('err', `✗ Неверный Ks`); addLog('err','[NS-STEP2]','Неверный Ks');
       return false;
     }
-    if (stepIdx === 2) { // ticket confirm (any non-empty)
+    if (stepIdx === 2) {
       if (val.trim().length > 0) {
-        addMLog('ok', `✓ Тикет получен — ${ticket.steps[2].ticketStr}`);
-        addLog('ok','[NS-STEP3]',`Тикет передан от ${msg.from} → admin`);
+        addMLog('ok', `✓ Тикет получен`);
+        addLog('ok','[NS-STEP3]',`Тикет передан от ${msg.from}`);
         return true;
       }
       return false;
     }
-    if (stepIdx === 3) { // Nb
+    if (stepIdx === 3) {
       if (clean === s.expected.toUpperCase() || (clean.length >= 4 && s.expected.toUpperCase().startsWith(clean))) {
-        addMLog('ok', `✓ Nb верифицирован — взаимная аутентификация завершена!`);
-        addLog('ok','[NS-STEP4]',`Nb верифицирован → взаимная аутентификация ✓`);
+        addMLog('ok', `✓ Nb верифицирован — взаимная аутентификация!`);
+        addLog('ok','[NS-STEP4]',`Взаимная аутентификация ✓`);
         return true;
       }
-      addMLog('err', `✗ Неверный Nb. Возможна replay-атака!`);
-      addLog('err','[NS-STEP4]','Неверный Nb — возможна атака повтором!');
+      addMLog('err', `✗ Неверный Nb — возможна replay-атака!`);
+      addLog('err','[NS-STEP4]','Неверный Nb!');
       return false;
     }
     return false;
@@ -497,7 +430,6 @@ function NSModal({ msg, onClose, addLog }) {
     if (verify(stepIdx, inputs[stepIdx])) {
       setErrors(p => { const n=[...p]; n[stepIdx]=''; return n; });
       if (stepIdx === 3) {
-        // Final step — decrypt
         const plain = nsDecrypt(msg.cipher, ticket.Ks);
         setDecrypted(plain || '[Ошибка расшифровки]');
         addMLog('ok','✓ Сообщение расшифровано успешно!');
@@ -508,22 +440,11 @@ function NSModal({ msg, onClose, addLog }) {
       }
     } else {
       setErrors(p => { const n=[...p]; n[stepIdx]='Неверное значение, попробуйте снова.'; return n; });
-      // flash
     }
   };
 
-  const stepState = (i) => {
-    if (i < step) return 'done';
-    if (i === step) return 'active';
-    return 'locked';
-  };
-
-  const stepNumClass = (i) => {
-    if (i < step) return 'done-n';
-    if (i === step) return 'active-n';
-    return 'pending';
-  };
-
+  const stepState = (i) => i < step ? 'done' : i === step ? 'active' : 'locked';
+  const stepNumClass = (i) => i < step ? 'done-n' : i === step ? 'active-n' : 'pending';
   const LOG_COLORS = {ok:'adm-bok',info:'adm-binfo',err:'adm-berr',warn:'adm-bwarn'};
 
   return (
@@ -534,8 +455,6 @@ function NSModal({ msg, onClose, addLog }) {
           <button className="ns-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="ns-modal-body">
-
-          {/* Message info */}
           <div style={{display:'flex',gap:12,marginBottom:14,padding:'10px 12px',background:'var(--bg3)',borderRadius:7,border:'1px solid var(--border)',fontSize:11,color:'var(--t2)',fontFamily:'JetBrains Mono,monospace'}}>
             <span>От: <strong style={{color:'var(--text)'}}>{msg.from}</strong></span>
             <span>•</span>
@@ -548,21 +467,13 @@ function NSModal({ msg, onClose, addLog }) {
             <span>Ks: {ticket.Ks.substr(0,8)}…</span>
           </div>
 
-          {/* Cipher preview */}
           <div style={{padding:'8px 12px',background:'rgba(0,0,0,.4)',borderRadius:6,border:'1px solid var(--border2)',marginBottom:14}}>
             <div style={{fontSize:9,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>Зашифрованное сообщение (AES/Ks):</div>
             <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:10,color:'var(--t2)',wordBreak:'break-all',lineHeight:1.7}}>{msg.cipher}</div>
           </div>
 
-          {/* Expired */}
-          {expired && (
-            <div className="ns-expired-box">
-              ⏰ TTL истёк ({SESSION_TTL}s). Сессионный ключ недействителен.<br/>
-              <span style={{fontSize:11,opacity:.7}}>Для расшифровки нужен новый сеанс KDC.</span>
-            </div>
-          )}
+          {expired && <div className="ns-expired-box">⏰ TTL истёк ({SESSION_TTL}s). Сессионный ключ недействителен.</div>}
 
-          {/* Success */}
           {step === 4 && !expired && (
             <div className="ns-success-box">
               <div className="ns-success-title">✓ Протокол завершён — взаимная аутентификация пройдена</div>
@@ -570,14 +481,11 @@ function NSModal({ msg, onClose, addLog }) {
             </div>
           )}
 
-          {/* 4 Steps */}
           {!expired && step < 4 && ticket.steps.map((s, i) => {
             const state = stepState(i);
             return (
               <div key={i} className={`ns-step ${state}`}>
-                <div className={`ns-step-num ${stepNumClass(i)}`}>
-                  {i < step ? '✓' : i+1}
-                </div>
+                <div className={`ns-step-num ${stepNumClass(i)}`}>{i < step ? '✓' : i+1}</div>
                 <div className="ns-step-content">
                   <div className="ns-step-title">{s.label}</div>
                   <div className="ns-step-formula"
@@ -588,15 +496,12 @@ function NSModal({ msg, onClose, addLog }) {
                       .replace(/✓[^<]*/g, m=>`<span class="hi2">${m}</span>`)
                     }}
                   />
-                  <div style={{fontSize:11,color:'var(--t3)',marginBottom: state==='active'?8:0}}>{s.desc}</div>
-
+                  <div style={{fontSize:11,color:'var(--t3)',marginBottom:state==='active'?8:0}}>{s.desc}</div>
                   {state === 'active' && (
                     <div className="ns-inp-group">
                       {i === 2 ? (
                         <>
-                          <div style={{fontSize:11,color:'var(--t2)',fontFamily:'JetBrains Mono,monospace',padding:'6px 10px',background:'rgba(0,0,0,.3)',borderRadius:5,marginBottom:6}}>
-                            {s.ticketStr}
-                          </div>
+                          <div style={{fontSize:11,color:'var(--t2)',fontFamily:'JetBrains Mono,monospace',padding:'6px 10px',background:'rgba(0,0,0,.3)',borderRadius:5,marginBottom:6}}>{s.ticketStr}</div>
                           <div className="ns-inp-hint">Введите «ok» для подтверждения получения тикета:</div>
                         </>
                       ) : (
@@ -610,9 +515,7 @@ function NSModal({ msg, onClose, addLog }) {
                           onChange={e => setInputs(p=>{const n=[...p];n[i]=e.target.value;return n;})}
                           onKeyDown={e=>e.key==='Enter'&&handleConfirm(i)}
                         />
-                        <button className="ns-step-btn" onClick={()=>handleConfirm(i)}>
-                          Подтвердить →
-                        </button>
+                        <button className="ns-step-btn" onClick={()=>handleConfirm(i)}>Подтвердить →</button>
                       </div>
                       {errors[i] && <div className="ns-err-msg">{errors[i]}</div>}
                     </div>
@@ -622,7 +525,6 @@ function NSModal({ msg, onClose, addLog }) {
             );
           })}
 
-          {/* Modal log */}
           <div className="ns-modal-log">
             <div className="ns-modal-log-title">📋 Протокол-лог сессии</div>
             <div className="adm-log-list">
@@ -635,16 +537,13 @@ function NSModal({ msg, onClose, addLog }) {
               ))}
             </div>
           </div>
-
         </div>
       </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CHAT PAGE — with NS-KDC encryption
-// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Chat Page ────────────────────────────────────────────────────────────────
 function ChatPage({ addLog, showToast }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -655,7 +554,6 @@ function ChatPage({ addLog, showToast }) {
   const [sessionStart, setSessionStart] = useState(Date.now());
   const [lastFetch, setLastFetch] = useState(0);
   const endRef = useRef(null);
-  const bcRef = useRef(null);
 
   const addCLog = useCallback((type, tag, msg) => {
     const cls = {ok:'adm-bok',err:'adm-berr',warn:'adm-bwarn',info:'adm-binfo'}[type]||'adm-binfo';
@@ -663,7 +561,6 @@ function ChatPage({ addLog, showToast }) {
     addLog(type, tag, msg);
   }, [addLog]);
 
-  // Renew session key when TTL expires
   const renewSession = useCallback(() => {
     const newKs = rHex(16);
     setSessionKs(newKs);
@@ -684,70 +581,51 @@ function ChatPage({ addLog, showToast }) {
     return () => clearInterval(t);
   }, [sessionStart, renewSession]);
 
-  // Load local messages on mount
+  // Initial load + polling from backend every 2s
   useEffect(() => {
-    const local = loadLocalMsgs();
-    if (local.length) setMessages(local);
     addCLog('ok','[KDC]',`Сессионный ключ: ${sessionKs.substr(0,8)}… TTL=${SESSION_TTL}s`);
     addCLog('info','[NS]','NS-KDC протокол активен — сообщения зашифрованы');
-  }, []);
 
-  // BroadcastChannel (same browser, different tabs)
-  useEffect(() => {
-    try {
-      bcRef.current = new BroadcastChannel('qmg_chat_ns');
-      bcRef.current.onmessage = (e) => {
-        if (e.data?.type === 'new_msg' && e.data.msg.from !== 'admin') {
-          setMessages(prev => {
-            if (prev.find(m => m.id === e.data.msg.id)) return prev;
-            const updated = [...prev, e.data.msg];
-            saveLocalMsgs(updated);
-            return updated;
-          });
-          addCLog('ok','[ЧАТ]',`operator → admin: зашифрованное сообщение получено`);
-          showToast('💬 Новое зашифрованное сообщение от оператора!','tok');
-        }
-      };
-    } catch {}
-    return () => { try { bcRef.current?.close(); } catch {} };
-  }, [addCLog, showToast]);
-
-  // Firebase polling (cross-device)
-  useEffect(() => {
     const poll = async () => {
-      const remote = await fbFetch(lastFetch);
-      if (remote.length) {
+      const newMsgs = await apiFetchMsgs(lastFetch);
+      if (newMsgs.length) {
         setLastFetch(Date.now());
         setMessages(prev => {
           const ids = new Set(prev.map(m => m.id));
-          const newMsgs = remote.filter(m => !ids.has(m.id) && m.from !== 'admin');
-          if (!newMsgs.length) return prev;
-          const updated = [...prev, ...newMsgs].sort((a,b)=>a.timestamp-b.timestamp);
-          saveLocalMsgs(updated);
-          newMsgs.forEach(() => {
-            addCLog('ok','[FIREBASE]','Новое сообщение от оператора (cross-device)');
-            showToast('📡 Новое сообщение от оператора!','tok');
+          const fresh = newMsgs.filter(m => !ids.has(m.id) && m.from !== 'admin');
+          if (!fresh.length) return prev;
+          fresh.forEach(() => {
+            addCLog('ok','[ЧАTT]',`operator → admin: зашифрованное сообщение получено`);
+            showToast('💬 Новое зашифрованное сообщение от оператора!','tok');
           });
-          return updated;
+          return [...prev, ...fresh].sort((a,b) => a.timestamp - b.timestamp);
         });
       }
     };
-    const t = setInterval(poll, 3000);
+
+    // Load all messages on mount
+    apiFetchMsgs(0).then(all => {
+      if (all.length) {
+        setMessages(all.sort((a,b) => a.timestamp - b.timestamp));
+        setLastFetch(Date.now());
+      }
+    });
+
+    const t = setInterval(poll, 2000);
     return () => clearInterval(t);
-  }, [lastFetch, addCLog, showToast]);
+  }, []);
 
   useEffect(() => { endRef.current?.scrollIntoView({behavior:'smooth'}); }, [messages]);
 
-  const sendMsg = () => {
+  const sendMsg = async () => {
     if (!input.trim()) return;
 
-    // Renew key if expired
     let ks = sessionKs;
     if ((Date.now() - sessionStart) / 1000 >= SESSION_TTL) {
       ks = rHex(16);
       setSessionKs(ks);
       setSessionStart(Date.now());
-      addCLog('warn','[KDC]',`Автообновление ключа перед отправкой: ${ks.substr(0,8)}…`);
+      addCLog('warn','[KDC]',`Автообновление ключа: ${ks.substr(0,8)}…`);
     }
 
     const ticket = generateNSTicket('admin','operator', ks);
@@ -761,19 +639,17 @@ function ChatPage({ addLog, showToast }) {
       time: ts(),
     };
 
-    const updated = [...messages, msg];
-    setMessages(updated);
-    saveLocalMsgs(updated);
+    setMessages(prev => [...prev, msg]);
     setInput('');
 
-    // Broadcast (same browser)
-    try { bcRef.current?.postMessage({type:'new_msg',msg}); } catch {}
-    // Firebase (cross-device)
-    fbPush(msg).then(ok => {
-      if(ok) addCLog('ok','[FIREBASE]',`Сообщение опубликовано в Firebase`);
-    });
-
-    addCLog('ok','[NS-KDC]',`admin→operator: зашифровано Ks=${ks.substr(0,8)}… Na=0x${ticket.Na} Nb=0x${ticket.Nb}`);
+    const ok = await apiSendMsg(msg);
+    if (ok) {
+      addCLog('ok','[BACKEND]',`Сообщение сохранено в MongoDB`);
+    } else {
+      addCLog('err','[BACKEND]','Ошибка сохранения сообщения');
+      showToast('⚠ Ошибка отправки сообщения','terr');
+    }
+    addCLog('ok','[NS-KDC]',`admin→operator: Ks=${ks.substr(0,8)}… Na=0x${ticket.Na}`);
   };
 
   const ttlPct = (ttl / SESSION_TTL) * 100;
@@ -782,19 +658,12 @@ function ChatPage({ addLog, showToast }) {
 
   return (
     <div className="adm-pg">
-      {openModal && (
-        <NSModal
-          msg={openModal}
-          onClose={() => setOpenModal(null)}
-          addLog={addCLog}
-        />
-      )}
+      {openModal && <NSModal msg={openModal} onClose={() => setOpenModal(null)} addLog={addCLog} />}
 
       <div className="adm-tag">Чат</div>
       <div className="adm-h1">Чат — NS-KDC Шифрование</div>
       <div className="adm-sub">Needham–Schroeder протокол · Нажмите на сообщение чтобы расшифровать</div>
 
-      {/* NS Legend */}
       <div className="ns-legend-box">
         <strong>Needham–Schroeder + KDC:</strong><br/>
         1. admin→KDC: {'{ ID_admin, ID_operator, Na }'}K_admin — запрос сессионного ключа<br/>
@@ -803,7 +672,6 @@ function ChatPage({ addLog, showToast }) {
         4. operator→admin: {'{ Nb }'}Ks → {'{ Nb−1 }'}Ks ✓ — взаимная аутентификация
       </div>
 
-      {/* TTL bar */}
       <div className="adm-card adm-mb">
         <div className="adm-card-t">
           <span>🔑 KDC Сессионный ключ</span>
@@ -822,7 +690,6 @@ function ChatPage({ addLog, showToast }) {
         </div>
       </div>
 
-      {/* Chat */}
       <div className="adm-card">
         <div className="adm-card-t">
           <div style={{display:'flex',alignItems:'center',gap:7}}>
@@ -847,14 +714,9 @@ function ChatPage({ addLog, showToast }) {
               const tc = ttlLeft > 60 ? 'ns-ttl-ok' : ttlLeft > 20 ? 'ns-ttl-warn' : 'ns-ttl-dead';
               return (
                 <div key={m.id} className={`ns-msg-row ${isMe?'me':'them'}`}>
-                  <div
-                    className={`ns-bubble ${isMe?'me':'them'}`}
-                    onClick={() => setOpenModal(m)}
-                    title="Нажмите для расшифровки по NS-протоколу"
-                  >
-                    <div className="ns-cipher-preview">
-                      {m.cipher.substr(0,48)}…
-                    </div>
+                  <div className={`ns-bubble ${isMe?'me':'them'}`} onClick={() => setOpenModal(m)}
+                    title="Нажмите для расшифровки по NS-протоколу">
+                    <div className="ns-cipher-preview">{m.cipher.substr(0,48)}…</div>
                     <div className="ns-lock-row">
                       <span>🔒</span>
                       <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:10,color:'var(--gold2)'}}>
@@ -864,16 +726,10 @@ function ChatPage({ addLog, showToast }) {
                   </div>
                   <div className="ns-meta">
                     <span>{isMe?'admin':'operator'}</span>
+                    <span>·</span><span>{m.time}</span><span>·</span>
+                    <span className={`ns-ttl-pill ${tc}`}>{ttlExpired?'⏰ TTL истёк':`TTL ${Math.round(ttlLeft)}s`}</span>
                     <span>·</span>
-                    <span>{m.time}</span>
-                    <span>·</span>
-                    <span className={`ns-ttl-pill ${tc}`}>
-                      {ttlExpired ? '⏰ TTL истёк' : `TTL ${Math.round(ttlLeft)}s`}
-                    </span>
-                    <span>·</span>
-                    <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:9,color:'var(--t3)'}}>
-                      Ks:{m.ticket?.Ks?.substr(0,6)}…
-                    </span>
+                    <span style={{fontFamily:'JetBrains Mono,monospace',fontSize:9,color:'var(--t3)'}}>Ks:{m.ticket?.Ks?.substr(0,6)}…</span>
                   </div>
                 </div>
               );
@@ -882,21 +738,16 @@ function ChatPage({ addLog, showToast }) {
           </div>
 
           <div className="ns-inp-row">
-            <input
-              className="ns-chat-inp"
-              placeholder="Сообщение будет зашифровано NS-протоколом..."
-              value={input}
-              onChange={e=>setInput(e.target.value)}
-              onKeyDown={e=>e.key==='Enter'&&sendMsg()}
-            />
+            <input className="ns-chat-inp" placeholder="Сообщение будет зашифровано NS-протоколом..."
+              value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&sendMsg()} />
             <button className="ns-send-btn" onClick={sendMsg}>🔐 Отправить</button>
           </div>
         </div>
 
-        {/* Chat logs */}
         {chatLogs.length > 0 && (
           <div className="ns-log-strip">
-            {chatLogs.slice(0,6).map((l,i)=>(
+            {chatLogs.slice(0,6).map((l,i) => (
               <div key={i} className="ns-log-item">
                 <span className="ns-log-t">{l.t}</span>
                 <span className={`ns-log-tag adm-bdg ${l.cls}`}>{l.tag}</span>
@@ -910,34 +761,7 @@ function ChatPage({ addLog, showToast }) {
   );
 }
 
-// ─── Other pages (same as original) ──────────────────────────────────────────
-function AuthWall({ onLogin }) {
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
-  const [err, setErr] = useState('');
-  const tryLogin = () => {
-    if (user === 'admin' && pass === 'qmg2025') {
-      try { localStorage.setItem('qmg_user',user); localStorage.setItem('qmg_role','admin'); } catch {}
-      onLogin(user);
-    } else setErr('Қате логин немесе пароль');
-  };
-  return (
-    <div className="adm-auth">
-      <div className="adm-aw">
-        <div style={{fontSize:48}}>👑</div>
-        <h2>Әкімші панелі</h2>
-        <p>Демо: <strong style={{color:'var(--gold2)'}}>admin / qmg2025</strong></p>
-        <div className="adm-aw-fields">
-          <input className="adm-aw-inp" placeholder="Логин" value={user} onChange={e=>setUser(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryLogin()} />
-          <input className="adm-aw-inp" type="password" placeholder="Пароль" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&tryLogin()} />
-        </div>
-        {err && <div className="adm-aw-err">{err}</div>}
-        <button className="adm-aw-btn" onClick={tryLogin}>Кіру →</button>
-      </div>
-    </div>
-  );
-}
-
+// ─── Other pages ──────────────────────────────────────────────────────────────
 function LogItem({ log }) {
   return (
     <div className="adm-li">
@@ -1173,21 +997,22 @@ export default function Admin() {
     setLogs(prev=>[{t:ts(),cls,tag,msg},...prev].slice(0,60));
   },[]);
 
-  // Listen for new messages from operator → update unread badge
+  // Poll for new operator messages to update unread badge
   useEffect(()=>{
     if(!authed) return;
-    let bc;
-    try {
-      bc = new BroadcastChannel('qmg_chat_ns');
-      bc.onmessage=(e)=>{
-        if(e.data?.type==='new_msg'&&e.data.msg.from!=='admin'){
-          if(page!=='chat') setUnread(p=>p+1);
-          showToast('💬 Новое зашифрованное сообщение от оператора!','tok');
-        }
-      };
-    } catch {}
-    return ()=>{ try{bc?.close();}catch{} };
-  },[authed,page,showToast]);
+    let lastTs = Date.now();
+    const poll = async () => {
+      const newMsgs = await apiFetchMsgs(lastTs);
+      const fromOp = newMsgs.filter(m => m.from !== 'admin');
+      if (fromOp.length && page !== 'chat') {
+        setUnread(p => p + fromOp.length);
+        showToast('💬 Новое зашифрованное сообщение от оператора!','tok');
+        lastTs = Date.now();
+      }
+    };
+    const t = setInterval(poll, 3000);
+    return () => clearInterval(t);
+  },[authed, page, showToast]);
 
   useEffect(()=>{
     if(!authed) return;
